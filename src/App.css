@@ -1,0 +1,70 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  background: var(--color-bg-deep);
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  padding: var(--layout-padding-y) var(--layout-padding-x) var(--layout-padding-bottom);
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  transition: margin-left 0.25s ease;
+}
+
+.app--sidebar-collapsed {
+  --sidebar-width: var(--sidebar-width-collapsed);
+}
+
+/* 普通页面：内容区居中，限制最大宽度 */
+.main-content:not(.main-content-workspace):not(.main-content-home) > * {
+  width: 100%;
+  max-width: var(--layout-max-width);
+}
+
+.app-workspace .main-content {
+  padding: 10px;
+}
+
+.main-content-workspace {
+  height: 100vh;
+  overflow: hidden;
+  padding: 8px !important;
+  justify-content: stretch;
+}
+
+.main-content-workspace > * {
+  width: 100%;
+  max-width: none;
+}
+
+/* 工作室页（抽帧 / 像素工具箱）：减少主内容区顶部留白 */
+.main-content-studio {
+  padding-top: 8px;
+  padding-bottom: 20px;
+}
+
+/* 首页 Hero 全宽（主内容区已避开侧栏） */
+.main-content-home {
+  padding: 0;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.main-content-home > * {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 12px 14px 20px;
+  }
+}

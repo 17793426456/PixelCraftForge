@@ -1,0 +1,110 @@
+.vg-ref-preview {
+  max-width: 100%;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.vg-slider-group {
+  padding-right: 8px;
+}
+
+.vg-progress {
+  margin-bottom: 10px;
+}
+
+.vg-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.vg-result-card {
+  background: var(--jm-bg-elevated);
+  border: 1px solid var(--jm-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.vg-result-card:hover {
+  border-color: var(--jm-border-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.vg-video-cover {
+  position: relative;
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(99, 102, 241, 0.15) 0%, transparent 55%),
+    linear-gradient(180deg, #1a1a2e 0%, var(--jm-bg-hover) 100%);
+}
+
+.vg-generating-card .vg-video-cover {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.12) 0%, transparent 60%),
+    var(--jm-bg-hover);
+}
+
+.vg-generating-card .vg-video-cover p {
+  font-size: 13px;
+  color: var(--jm-text-secondary);
+  margin: 0;
+}
+
+.vg-video-icon {
+  font-size: 48px;
+  color: var(--jm-text-muted);
+  opacity: 0.5;
+}
+
+.vg-play-btn {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.vg-play-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+
+.vg-duration-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+}
+
+.vg-mode-tag {
+  margin-top: 4px;
+  background: rgba(168, 85, 247, 0.12) !important;
+  border: 1px solid rgba(168, 85, 247, 0.25) !important;
+  color: #c4b5fd !important;
+  font-size: 11px !important;
+}
+
+.vg-result-card .jm-result-meta {
+  padding: 12px;
+}

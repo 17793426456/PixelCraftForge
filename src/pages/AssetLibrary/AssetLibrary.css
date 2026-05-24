@@ -1,0 +1,76 @@
+.library-page {
+  width: 100%;
+}
+
+.library-page .page-header {
+  text-align: center;
+}
+
+.library-page .page-title {
+  justify-content: center;
+}
+
+.library-page .page-subtitle {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 560px;
+}
+
+.filter-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-card) !important;
+  background: var(--gradient-surface) !important;
+  margin-bottom: 20px;
+}
+
+.filter-card .ant-input-search {
+  max-width: 400px;
+  margin: 0 auto 12px;
+  display: block;
+}
+
+.filter-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  line-height: 28px;
+  font-weight: 500;
+  min-width: 72px;
+}
+
+.library-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.library-page .ant-card {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.library-page .ant-card-hoverable:hover {
+  transform: translateY(-3px);
+}
+
+.asset-preview {
+  height: 120px;
+  font-size: 42px;
+}
