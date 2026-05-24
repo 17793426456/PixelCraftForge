@@ -52,6 +52,7 @@ export default function Home() {
   const [uploadedImage, setUploadedImage] = useState(null)
   const [analysisResult, setAnalysisResult] = useState(null)
   const [generatedAssets, setGeneratedAssets] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState('道具物品类')
   const [isGenerating, setIsGenerating] = useState(false)
   const heroRef = useRef(null)
   const cosmosRef = useRef(null)
@@ -118,7 +119,7 @@ export default function Home() {
           const name = `素材_${base + i + 1}`
           const blob = await createPlaceholderPngBlob({ name, style, sizePx, seed: base + i })
           const previewUrl = await placeholderBlobToDataUrl(blob)
-          return { id: Date.now() + i, name, style, size: selectedSize, previewUrl, blob }
+          return { id: Date.now() + i, name, style, size: selectedSize, previewUrl, blob, category: selectedCategory }
         }),
       )
       setGeneratedAssets((prev) => [...prev, ...next])
@@ -155,7 +156,7 @@ export default function Home() {
         await addAssetFromFile(file, {
           name: a.name,
           style: a.style,
-          funcType: '道具物品类',
+          funcType: selectedCategory,
           folder: '工作台生成',
         })
       }
@@ -293,7 +294,9 @@ export default function Home() {
                 <div className="option-row">
                   <span className="option-label">类型</span>
                   <Space wrap size={[6, 6]}>
-                    {categoryOptions.map(c => <Tag key={c} className="jm-tag jm-tag--active">{c}</Tag>)}
+                    {categoryOptions.map(c => (
+                      <Tag key={c} className={`jm-tag ${selectedCategory === c ? 'jm-tag--active' : ''}`} onClick={() => setSelectedCategory(c)}>{c}</Tag>
+                    ))}
                   </Space>
                 </div>
               </div>
