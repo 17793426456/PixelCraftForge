@@ -18,6 +18,7 @@ export default function MapEditor() {
   const [grid, setGrid] = useState(() => Array.from({ length: 12 }, () => Array(16).fill(0)))
   const [collisions, setCollisions] = useState(() => Array.from({ length: 12 }, () => Array(16).fill(false)))
   const [paintCollision, setPaintCollision] = useState(false)
+  const [isPainting, setIsPainting] = useState(false)
   const canvasRef = useRef(null)
 
   const resizeGrid = useCallback((c, r) => {
@@ -69,8 +70,9 @@ export default function MapEditor() {
 
   useEffect(() => { draw() }, [draw])
 
-  const handleClick = (e) => {
+  const paintAt = (e) => {
     const canvas = canvasRef.current
+    if (!canvas) return
     const rect = canvas.getBoundingClientRect()
     const x = Math.floor(((e.clientX - rect.left) / rect.width) * cols)
     const y = Math.floor(((e.clientY - rect.top) / rect.height) * rows)
@@ -78,7 +80,7 @@ export default function MapEditor() {
     if (paintCollision) {
       setCollisions((prev) => {
         const next = prev.map((row) => [...row])
-        next[y][x] = !next[y][x]
+        next[y][x] = true
         return next
       })
     } else {
@@ -88,7 +90,7 @@ export default function MapEditor() {
         return next
       })
     }
-    setTimeout(draw, 0)
+    requestAnimationFrame(draw)
   }
 
   const exportMap = () => {
@@ -129,7 +131,10 @@ export default function MapEditor() {
         </Space>
         <canvas
           ref={(el) => { canvasRef.current = el; if (el) draw() }}
-          onClick={handleClick}
+          onMouseDown={(e) => { setIsPainting(true); paintAt(e) }}
+          onMouseMove={(e) => { if (isPainting) paintAt(e) }}
+          onMouseUp={() => setIsPainting(false)}
+          onMouseLeave={() => setIsPainting(false)}
           style={{ width: '100%', maxWidth: cols * tileSize, borderRadius: 8, cursor: 'crosshair' }}
         />
       </div>
