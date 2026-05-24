@@ -7,6 +7,9 @@ import {
   ReloadOutlined, InfoCircleOutlined, RightOutlined, DownOutlined, PauseCircleOutlined,
 } from '@ant-design/icons'
 import IconFont from '../../components/IconFont/IconFont'
+import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
+import vfxPresets from '../../constants/features/vfx-presets.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import '../ElementGenerate/ElementGenerate.css'
 import './VideoGenerate.css'
 
@@ -158,6 +161,8 @@ export default function VideoGenerate() {
   return (
     <div className="jm-workspace vg-workspace">
       <aside className="jm-panel">
+        <FeatureCallout feature={vfxParticleParams} />
+        <FeatureCallout feature={vfxPresets} />
         <div className="jm-panel-header">
           <h1 className="jm-panel-title">视频生成</h1>
           <Tooltip title="重置参数">
