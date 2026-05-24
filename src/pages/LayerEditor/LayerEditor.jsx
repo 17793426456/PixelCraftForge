@@ -3,6 +3,8 @@ import { Button, Slider, Space, Upload, ColorPicker, message } from 'antd'
 import { DownloadOutlined, PlusOutlined, DeleteOutlined, BgColorsOutlined } from '@ant-design/icons'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import imageLayerEdit from '../../constants/features/image-layer-edit.js'
+import assistRefTrace from '../../constants/features/assist-ref-trace.js'
+import assistGridRuler from '../../constants/features/assist-grid-ruler.js'
 import { triggerDownload } from '../../lib/assets/imageExport.js'
 import JSZip from 'jszip'
 import '../PixelTools/PixelTools.css'
@@ -14,6 +16,10 @@ export default function LayerEditor() {
   const [brushSize, setBrushSize] = useState(8)
   const [color, setColor] = useState('#a855f7')
   const [drawing, setDrawing] = useState(false)
+  const [refImage, setRefImage] = useState(null)
+  const [refOpacity, setRefOpacity] = useState(0.35)
+  const [showGrid, setShowGrid] = useState(true)
+  const refImgRef = useRef(null)
   const size = { w: 512, h: 512 }
 
   const activeLayer = layers.find((l) => l.id === activeId)
@@ -40,9 +46,30 @@ export default function LayerEditor() {
     const ctx = canvas.getContext('2d')
     ctx.fillStyle = '#1a1a22'
     ctx.fillRect(0, 0, size.w, size.h)
+    if (showGrid) {
+      ctx.strokeStyle = 'rgba(168,85,247,0.12)'
+      const step = 32
+      for (let x = 0; x <= size.w; x += step) {
+        ctx.beginPath()
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, size.h)
+        ctx.stroke()
+      }
+      for (let y = 0; y <= size.h; y += step) {
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(size.w, y)
+        ctx.stroke()
+      }
+    }
+    if (refImgRef.current) {
+      ctx.globalAlpha = refOpacity
+      ctx.drawImage(refImgRef.current, 0, 0, size.w, size.h)
+      ctx.globalAlpha = 1
+    }
     const merged = composite()
     ctx.drawImage(merged, 0, 0)
-  }, [composite])
+  }, [composite, showGrid, refOpacity])
 
   useEffect(() => { redrawPreview() }, [redrawPreview])
 
@@ -111,11 +138,26 @@ export default function LayerEditor() {
           <p className="atelier-subtitle">多图层涂色、抠图底图导入，导出合并 PNG 或分层 ZIP</p>
         </header>
         <FeatureCallout feature={imageLayerEdit} />
+        <FeatureCallout feature={assistRefTrace} />
+        <FeatureCallout feature={assistGridRuler} />
         <Space wrap style={{ marginBottom: 16 }}>
           <Button icon={<PlusOutlined />} onClick={() => addLayer()}>新建图层</Button>
           <Upload showUploadList={false} beforeUpload={(f) => { void importImage(f); return false }} accept="image/*">
             <Button>导入图片为图层</Button>
           </Upload>
+          <Upload showUploadList={false} beforeUpload={(f) => {
+            const url = URL.createObjectURL(f)
+            const img = new Image()
+            img.onload = () => { refImgRef.current = img; setRefImage(url) }
+            img.src = url
+            return false
+          }} accept="image/*"
+          >
+            <Button>参考图临摹</Button>
+          </Upload>
+          <Button type={showGrid ? 'primary' : 'default'} onClick={() => setShowGrid((g) => !g)}>网格</Button>
+          <span>参考透明度</span>
+          <Slider min={0.1} max={0.8} step={0.05} value={refOpacity} onChange={setRefOpacity} style={{ width: 100 }} />
           <ColorPicker value={color} onChange={setColor} />
           <span>笔刷 {brushSize}px</span>
           <Slider min={2} max={48} value={brushSize} onChange={setBrushSize} style={{ width: 120 }} />
