@@ -44,6 +44,26 @@
   color: var(--jm-text-secondary);
 }
 
+.library-compress-row,
+.library-snapshots {
+  margin-bottom: 16px;
+}
+
+.library-preview-detail p {
+  margin: 8px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.library-preview-large {
+  min-height: 120px;
+  margin-bottom: 12px;
+}
+
+.library-asset-card {
+  cursor: pointer;
+}
+
 .library-grid {
   width: 100%;
 }
