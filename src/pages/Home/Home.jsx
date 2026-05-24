@@ -12,6 +12,8 @@ import PlanetAnimation from '../../components/PlanetAnimation/PlanetAnimation'
 import BrandName from '../../components/Brand/BrandName'
 import { brandLogo, BRAND_TAGLINE } from '../../constants/brand'
 import ScrollReveal from '../../components/ScrollReveal/ScrollReveal'
+import FeatureCatalog from '../../components/FeatureHub/FeatureCatalog.jsx'
+import assistRefTrace from '../../constants/features/assist-ref-trace.js'
 import './Home.css'
 
 const { TextArea } = Input
@@ -24,7 +26,8 @@ const stats = [
   { title: '支持素材类型', value: 6, suffix: '类', icon: <FileImageOutlined /> },
   { title: '内置画风', value: 12, suffix: '种', icon: <BgColorsOutlined /> },
   { title: '可导出格式', value: 8, suffix: '种', icon: <ApiOutlined /> },
-  { title: '一站式模块', value: 8, suffix: '大', icon: <RocketOutlined /> },
+  { title: '一站式模块', value: 7, suffix: '大', icon: <RocketOutlined /> },
+  { title: '子功能点', value: 28, suffix: '项', icon: <ApiOutlined /> },
 ]
 
 const modules = [
@@ -135,7 +138,7 @@ export default function Home() {
           <span className="hero-tag">{BRAND_TAGLINE}</span>
           <p className="hero-product-line hero-desc--light">AI 智能 2D 游戏元素生成系统</p>
           <p className="hero-desc hero-desc--light">
-            一键生成全套 2D 游戏美术素材，分层可编辑，直接对接游戏引擎
+            一键生成全套 2D 游戏美术素材，分层可编辑，直接对接游戏引擎。{assistRefTrace.summary}
           </p>
           <div className="hero-actions">
             <button type="button" className="btn-primary" onClick={() => navigate('/generate')}>
@@ -173,7 +176,15 @@ export default function Home() {
 
       <section className="home-section">
         <ScrollReveal variant="up" className="section-header">
-          <h2 className="section-heading">核心功能模块</h2>
+          <h2 className="section-heading">功能全景（七大模块 · 28 项能力）</h2>
+          <p className="section-caption">图片处理 · 动画 · 场景地图 · UI · 特效 · 资源管理 · 辅助工具</p>
+        </ScrollReveal>
+        <FeatureCatalog />
+      </section>
+
+      <section className="home-section">
+        <ScrollReveal variant="up" className="section-header">
+          <h2 className="section-heading">快捷入口</h2>
           <p className="section-caption">覆盖素材生成 → 入库管理全流程</p>
         </ScrollReveal>
         <Row gutter={[14, 14]} className="modules-row">
