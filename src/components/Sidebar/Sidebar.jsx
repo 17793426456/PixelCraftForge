@@ -3,7 +3,8 @@ import { Drawer, Tooltip } from 'antd'
 import {
   HomeOutlined, HighlightOutlined, EditOutlined, VideoCameraOutlined,
   SoundOutlined, PictureOutlined, AppstoreOutlined, PlayCircleOutlined,
-  BlockOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
+  BlockOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BgColorsOutlined,
+  BorderOutlined, ThunderboltOutlined,
 } from '@ant-design/icons'
 import BrandName from '../Brand/BrandName'
 import { brandLogo, BRAND_NAME_FULL } from '../../constants/brand'
@@ -21,6 +22,8 @@ const navGroups = [
       { key: '/generate', label: '图片生成', Icon: HighlightOutlined },
       { key: '/customize', label: '元素改造', Icon: EditOutlined },
       { key: '/pixel-tools', label: '像素工具箱', Icon: BlockOutlined },
+      { key: '/layer-editor', label: '图层编辑器', Icon: BgColorsOutlined },
+      { key: '/ui-studio', label: 'UI 工作室', Icon: AppstoreOutlined },
     ],
   },
   {
@@ -28,11 +31,15 @@ const navGroups = [
     items: [
       { key: '/video-generate', label: '视频生成', Icon: PlayCircleOutlined },
       { key: '/video-frame', label: 'AI 抽帧', Icon: VideoCameraOutlined },
+      { key: '/particle-studio', label: '粒子特效', Icon: ThunderboltOutlined },
     ],
   },
   {
     title: '场景地图',
-    items: [{ key: '/scene', label: '场景搭建', Icon: PictureOutlined }],
+    items: [
+      { key: '/scene', label: '场景搭建', Icon: PictureOutlined },
+      { key: '/map-editor', label: '地图编辑器', Icon: BorderOutlined },
+    ],
   },
   {
     title: '资源',
