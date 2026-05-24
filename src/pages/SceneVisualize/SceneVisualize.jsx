@@ -152,6 +152,7 @@ export default function SceneVisualize() {
   const [promptFocus, setPromptFocus] = useState(true)
   const [activeLayer, setActiveLayer] = useState('mid')
   const [showCollision, setShowCollision] = useState(false)
+  const [dragId, setDragId] = useState(null)
   const progressTimer = useRef(null)
   const canvasRef = useRef(null)
 
@@ -249,6 +250,16 @@ export default function SceneVisualize() {
     const types = LAYER_TYPES[activeLayer] ?? []
     return types.includes(el.type)
   })
+
+  const handleCanvasPointerMove = (e) => {
+    if (!dragId || !canvasRef.current) return
+    const rect = canvasRef.current.getBoundingClientRect()
+    const x = Math.min(95, Math.max(5, ((e.clientX - rect.left) / rect.width) * 100))
+    const y = Math.min(95, Math.max(5, ((e.clientY - rect.top) / rect.height) * 100))
+    setPlacedElements((prev) => prev.map((el) => (el.id === dragId ? { ...el, x, y } : el)))
+  }
+
+  const stopDrag = () => setDragId(null)
 
   const handleSwitchView = () => {
     const idx = VIEW_OPTIONS.findIndex((v) => v.value === selectedView)
@@ -405,6 +416,9 @@ export default function SceneVisualize() {
             <div
               ref={canvasRef}
               className={`canvas-area canvas-area--${previewState} ${zoomed ? 'is-zoomed' : ''}`}
+              onMouseMove={handleCanvasPointerMove}
+              onMouseUp={stopDrag}
+              onMouseLeave={stopDrag}
             >
               {previewState === 'idle' && (
                 <div className="scene-idle-state">
@@ -455,7 +469,9 @@ export default function SceneVisualize() {
                           top: `${el.y}%`,
                           borderColor: meta.color,
                           background: `${meta.color}18`,
+                          cursor: 'grab',
                         }}
+                        onMouseDown={() => setDragId(el.id)}
                       >
                         {showCollision && (
                           <span className="scene-collision-box" aria-hidden="true" />
