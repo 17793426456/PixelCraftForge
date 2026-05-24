@@ -5,11 +5,15 @@ import {
 import {
   ThunderboltOutlined, HighlightOutlined, PictureOutlined, EditOutlined,
   ReloadOutlined, InfoCircleOutlined, RightOutlined, DownOutlined,
+  DownloadOutlined, FolderAddOutlined,
 } from '@ant-design/icons'
 import IconFont from '../../components/IconFont/IconFont'
 import uiDrawComponents from '../../constants/features/ui-draw-components.js'
 import uiStateSprites from '../../constants/features/ui-state-sprites.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
+import { createPlaceholderPngBlob, placeholderBlobToDataUrl, ratioToDimensions } from '../../lib/assets/placeholderAsset.js'
+import { saveBlobToLibrary } from '../../lib/assets/saveToLibrary.js'
+import { zipBlobs } from '../../lib/assets/imageExport.js'
 import './ElementGenerate.css'
 
 const UI_STATE_PRESETS = ['normal', 'hover', 'disabled']
@@ -58,6 +62,10 @@ export default function ElementGenerate() {
   const [count, setCount] = useState(DEFAULTS.count)
   const [credits] = useState(40)
   const [results, setResults] = useState([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [refImageUrl, setRefImageUrl] = useState(null)
+  const [modifyImageUrl, setModifyImageUrl] = useState(null)
+  const [modifyPrompt, setModifyPrompt] = useState('')
   const [filterTime, setFilterTime] = useState('全部时间')
   const [filterType, setFilterType] = useState('全部类型')
   const [uiStateMode, setUiStateMode] = useState('normal')
@@ -86,17 +94,82 @@ export default function ElementGenerate() {
     message.info('已重置所有参数')
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (mode === '文生图' && !prompt.trim()) {
       message.warning('请输入描述后再生成')
       return
     }
-    setResults(prev => [...prev, ...Array.from({ length: count }, (_, i) => ({
-      id: Date.now() + i,
-      name: `生成素材_${prev.length + i + 1}`,
-      layered, ratio, resolution, model: currentModel.name,
-    }))])
-    message.success(`已生成 ${count} 个素材`)
+    if (mode === '图生图' && !refImageUrl) {
+      message.warning('请上传参考图')
+      return
+    }
+    if (mode === '二次修改' && (!modifyImageUrl || !modifyPrompt.trim())) {
+      message.warning('请上传素材并填写修改描述')
+      return
+    }
+    setIsGenerating(true)
+    try {
+      const base = results.length
+      const style = currentModel.name.includes('像素') ? '像素风' : '国风二次元'
+      const dims = ratioToDimensions(ratio, resolution === '2K' ? 512 : 256)
+      const genPrompt = mode === '二次修改' ? modifyPrompt : prompt
+      const next = await Promise.all(
+        Array.from({ length: count }, async (_, i) => {
+          const name = `生成素材_${base + i + 1}`
+          const blob = await createPlaceholderPngBlob({
+            name,
+            style,
+            seed: base + i,
+            prompt: genPrompt.slice(0, 20),
+            width: dims.width,
+            height: dims.height,
+          })
+          const previewUrl = await placeholderBlobToDataUrl(blob)
+          return {
+            id: Date.now() + i,
+            name,
+            layered,
+            ratio,
+            resolution,
+            model: currentModel.name,
+            mode,
+            previewUrl,
+            blob,
+            poses: selectedPoses,
+            createdAt: Date.now(),
+          }
+        }),
+      )
+      setResults((prev) => [...prev, ...next])
+      message.success(`已生成 ${count} 张预览图（本地占位，可下载或入库）`)
+    } catch {
+      message.error('生成失败')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleSaveResults = async () => {
+    if (!results.length) return
+    try {
+      for (const r of results) {
+        if (!r.blob) continue
+        await saveBlobToLibrary(r.blob, `${r.name}.png`, {
+          funcType: '角色类',
+          folder: '图片生成',
+          style: r.model,
+        })
+      }
+      message.success(`已入库 ${results.length} 个素材`)
+    } catch {
+      message.error('入库失败')
+    }
+  }
+
+  const handleDownloadAll = async () => {
+    const entries = results.filter((r) => r.blob).map((r) => ({ name: `${r.name}.png`, blob: r.blob }))
+    if (!entries.length) return
+    await zipBlobs(entries, 'generated-images.zip')
   }
 
   const timeMenu = {
@@ -161,18 +234,28 @@ export default function ElementGenerate() {
             />
           )}
           {mode === '图生图' && (
-            <Upload.Dragger accept="image/*" showUploadList={false} beforeUpload={() => false} className="jm-upload">
+            <Upload.Dragger accept="image/*" showUploadList={false} beforeUpload={(f) => {
+              setRefImageUrl(URL.createObjectURL(f))
+              return false
+            }} className="jm-upload"
+            >
               <p className="jm-upload-icon"><IconFont type="icon-folder" /></p>
-              <p className="jm-upload-text">点击或拖拽上传参考图片</p>
+              <p className="jm-upload-text">{refImageUrl ? '已选参考图，点击更换' : '点击或拖拽上传参考图片'}</p>
+              {refImageUrl && <img src={refImageUrl} alt="参考" style={{ maxWidth: '100%', maxHeight: 120, marginTop: 8, borderRadius: 8 }} />}
             </Upload.Dragger>
           )}
           {mode === '二次修改' && (
             <>
-              <Upload.Dragger accept="image/*" showUploadList={false} beforeUpload={() => false} className="jm-upload jm-upload-sm">
+              <Upload.Dragger accept="image/*" showUploadList={false} beforeUpload={(f) => {
+                setModifyImageUrl(URL.createObjectURL(f))
+                return false
+              }} className="jm-upload jm-upload-sm"
+              >
                 <p className="jm-upload-icon"><IconFont type="icon-image" /></p>
-                <p className="jm-upload-text">导入待修改素材</p>
+                <p className="jm-upload-text">{modifyImageUrl ? '已选素材' : '导入待修改素材'}</p>
+                {modifyImageUrl && <img src={modifyImageUrl} alt="素材" style={{ maxWidth: '100%', maxHeight: 80, marginTop: 8 }} />}
               </Upload.Dragger>
-              <TextArea rows={3} placeholder="描述修改需求..." className="jm-prompt" variant="borderless" />
+              <TextArea rows={3} placeholder="描述修改需求..." className="jm-prompt" variant="borderless" value={modifyPrompt} onChange={(e) => setModifyPrompt(e.target.value)} />
             </>
           )}
 
@@ -258,9 +341,9 @@ export default function ElementGenerate() {
         </div>
 
         <div className="jm-panel-footer">
-          <Button type="primary" size="large" block className="jm-generate-btn" onClick={handleGenerate}>
+          <Button type="primary" size="large" block className="jm-generate-btn" onClick={() => { void handleGenerate() }} disabled={isGenerating}>
             <span className="jm-generate-text">
-              <ThunderboltOutlined /> 免费创作
+              <ThunderboltOutlined /> {isGenerating ? '生成中...' : '免费创作'}
             </span>
             <span className="jm-generate-credit">
               <IconFont type="icon-flash" /> {credits}
@@ -277,8 +360,14 @@ export default function ElementGenerate() {
           <Dropdown menu={typeMenu} trigger={['click']}>
             <button type="button" className="jm-filter-btn">{filterType} <DownOutlined /></button>
           </Dropdown>
+          {results.length > 0 && (
+            <>
+              <Button size="small" icon={<DownloadOutlined />} onClick={() => { void handleDownloadAll() }}>批量下载</Button>
+              <Button size="small" icon={<FolderAddOutlined />} onClick={() => { void handleSaveResults() }}>一键入库</Button>
+            </>
+          )}
           <button type="button" className="jm-filter-btn">
-            <IconFont type="icon-task" /> 任务视图
+            <IconFont type="icon-task" /> 共 {results.length} 项
           </button>
         </div>
 
@@ -297,11 +386,11 @@ export default function ElementGenerate() {
               {results.map(r => (
                 <div key={r.id} className="jm-result-card">
                   <div className="jm-result-cover">
-                    <IconFont type="icon-game" />
+                    {r.previewUrl ? <img src={r.previewUrl} alt={r.name} /> : <IconFont type="icon-game" />}
                   </div>
                   <div className="jm-result-meta">
                     <span className="jm-result-name">{r.name}</span>
-                    <span className="jm-result-info">{r.ratio} · {r.resolution}</span>
+                    <span className="jm-result-info">{r.mode} · {r.ratio} · {r.resolution}</span>
                     {r.layered && <Badge status="success" text="分层" />}
                   </div>
                 </div>
