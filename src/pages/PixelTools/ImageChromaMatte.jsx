@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Button, ColorPicker, Segmented, Slider, Space, Upload, message } from 'antd'
 import { DownloadOutlined, BgColorsOutlined } from '@ant-design/icons'
 import { canvasToBlob, loadImageFromFile, triggerDownload } from '../../lib/frameRonin/gifUtils.js'
+import imageLayerEdit from '../../constants/features/image-layer-edit.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 
 const { Dragger } = Upload
 
@@ -126,6 +128,7 @@ export default function ImageChromaMatte() {
 
   return (
     <div className="pixel-tool-panel">
+      <FeatureCallout feature={imageLayerEdit} />
       <p className="pixel-tool-hint">绿幕/蓝幕色度键抠图，支持容差、边缘羽化与溢色抑制，导出透明 PNG。</p>
       <Dragger accept=".png,.jpg,.jpeg,.webp" maxCount={1} beforeUpload={(f) => { setFile(f); return false }} onRemove={() => setFile(null)}>
         <p><BgColorsOutlined /> 上传带纯色背景的图片</p>
