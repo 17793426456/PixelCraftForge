@@ -1,5 +1,8 @@
+# 默认使用腾讯云 MySQL，本文件仅作本地可选调试（docker compose --profile local-mysql up -d）
 services:
   mysql:
+    profiles:
+      - local-mysql
     image: mysql:8.0
     container_name: pixel-craft-forge-mysql
     restart: unless-stopped
