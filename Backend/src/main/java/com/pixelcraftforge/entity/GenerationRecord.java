@@ -28,6 +28,11 @@ public class GenerationRecord {
     @Column(name = "generation_type", nullable = false, length = 32)
     private AssetGenerationType generationType;
 
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "asset_category", nullable = false, length = 32)
+    private AssetCategory assetCategory;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String prompt;
 
@@ -100,6 +105,14 @@ public class GenerationRecord {
 
     public void setGenerationType(AssetGenerationType generationType) {
         this.generationType = generationType;
+    }
+
+    public AssetCategory getAssetCategory() {
+        return assetCategory;
+    }
+
+    public void setAssetCategory(AssetCategory assetCategory) {
+        this.assetCategory = assetCategory;
     }
 
     public String getPrompt() {

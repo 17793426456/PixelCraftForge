@@ -1,5 +1,6 @@
 package com.pixelcraftforge.dto;
 
+import com.pixelcraftforge.entity.AssetCategory;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +22,9 @@ public class ElementGenerateRequest {
     private Integer height;
 
     private String style;
+
+    @NotNull(message = "category 不能为空")
+    private AssetCategory category;
 
     public String getPrompt() {
         return prompt;
@@ -52,5 +56,13 @@ public class ElementGenerateRequest {
 
     public void setStyle(String style) {
         this.style = style;
+    }
+
+    public AssetCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(AssetCategory category) {
+        this.category = category;
     }
 }

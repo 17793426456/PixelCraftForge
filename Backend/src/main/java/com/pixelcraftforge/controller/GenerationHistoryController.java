@@ -1,6 +1,7 @@
 package com.pixelcraftforge.controller;
 
 import com.pixelcraftforge.dto.GenerationRecordResponse;
+import com.pixelcraftforge.entity.AssetCategory;
 import com.pixelcraftforge.entity.AssetGenerationType;
 import com.pixelcraftforge.service.GenerationRecordService;
 import org.springframework.data.domain.Page;
@@ -26,11 +27,10 @@ public class GenerationHistoryController {
     public ResponseEntity<Page<GenerationRecordResponse>> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) AssetGenerationType type) {
+            @RequestParam(required = false) AssetGenerationType type,
+            @RequestParam(required = false) AssetCategory category) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<GenerationRecordResponse> result = (type == null
-                ? generationRecordService.list(pageable)
-                : generationRecordService.listByType(type, pageable))
+        Page<GenerationRecordResponse> result = generationRecordService.list(type, category, pageable)
                 .map(GenerationRecordResponse::from);
         return ResponseEntity.ok(result);
     }

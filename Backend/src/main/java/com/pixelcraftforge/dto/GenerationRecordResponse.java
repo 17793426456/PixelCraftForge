@@ -1,5 +1,6 @@
 package com.pixelcraftforge.dto;
 
+import com.pixelcraftforge.entity.AssetCategory;
 import com.pixelcraftforge.entity.GenerationRecord;
 import com.pixelcraftforge.entity.GenerationStatus;
 import com.pixelcraftforge.entity.AssetGenerationType;
@@ -10,6 +11,7 @@ public class GenerationRecordResponse {
 
     private Long id;
     private AssetGenerationType generationType;
+    private AssetCategory category;
     private String prompt;
     private String style;
     private Integer width;
@@ -30,6 +32,7 @@ public class GenerationRecordResponse {
         GenerationRecordResponse response = new GenerationRecordResponse();
         response.setId(record.getId());
         response.setGenerationType(record.getGenerationType());
+        response.setCategory(record.getAssetCategory());
         response.setPrompt(record.getPrompt());
         response.setStyle(record.getStyle());
         response.setWidth(record.getWidth());
@@ -62,6 +65,14 @@ public class GenerationRecordResponse {
 
     public void setGenerationType(AssetGenerationType generationType) {
         this.generationType = generationType;
+    }
+
+    public AssetCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(AssetCategory category) {
+        this.category = category;
     }
 
     public String getPrompt() {

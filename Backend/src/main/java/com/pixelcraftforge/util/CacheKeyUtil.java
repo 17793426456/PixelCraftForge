@@ -9,11 +9,14 @@ public final class CacheKeyUtil {
 
     public static String buildKey(ElementGenerateRequest request) {
         String style = request.getStyle() == null ? "" : request.getStyle();
-        return "t2i|" + request.getPrompt() + "|" + request.getWidth() + "|" + request.getHeight() + "|" + style;
+        String category = request.getCategory() == null ? "" : request.getCategory().name();
+        return "t2i|" + category + "|" + request.getPrompt() + "|" + request.getWidth() + "|" + request.getHeight() + "|" + style;
     }
 
-    public static String buildImageToImageKey(String prompt, int width, int height, String style, String imageHash) {
+    public static String buildImageToImageKey(
+            String prompt, int width, int height, String style, String category, String imageHash) {
         String normalizedStyle = style == null ? "" : style;
-        return "i2i|" + imageHash + "|" + prompt + "|" + width + "|" + height + "|" + normalizedStyle;
+        String normalizedCategory = category == null ? "" : category;
+        return "i2i|" + imageHash + "|" + normalizedCategory + "|" + prompt + "|" + width + "|" + height + "|" + normalizedStyle;
     }
 }

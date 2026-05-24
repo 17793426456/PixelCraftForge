@@ -1,5 +1,6 @@
 package com.pixelcraftforge.repository;
 
+import com.pixelcraftforge.entity.AssetCategory;
 import com.pixelcraftforge.entity.GenerationRecord;
 import com.pixelcraftforge.entity.AssetGenerationType;
 import org.springframework.data.domain.Page;
@@ -13,4 +14,11 @@ public interface GenerationRecordRepository extends JpaRepository<GenerationReco
     Optional<GenerationRecord> findByExternalTaskId(String externalTaskId);
 
     Page<GenerationRecord> findByGenerationType(AssetGenerationType generationType, Pageable pageable);
+
+    Page<GenerationRecord> findByAssetCategory(AssetCategory assetCategory, Pageable pageable);
+
+    Page<GenerationRecord> findByGenerationTypeAndAssetCategory(
+            AssetGenerationType generationType,
+            AssetCategory assetCategory,
+            Pageable pageable);
 }

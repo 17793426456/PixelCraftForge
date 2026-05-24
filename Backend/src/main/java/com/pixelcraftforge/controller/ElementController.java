@@ -2,6 +2,7 @@ package com.pixelcraftforge.controller;
 
 import com.pixelcraftforge.dto.ElementGenerateRequest;
 import com.pixelcraftforge.dto.ElementGenerateResponse;
+import com.pixelcraftforge.entity.AssetCategory;
 import com.pixelcraftforge.service.ElementGenerateService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -36,8 +37,8 @@ public class ElementController {
 
     @PostMapping("/generate")
     public ResponseEntity<ElementGenerateResponse> generate(@Valid @RequestBody ElementGenerateRequest request) {
-        log.info("收到文生图请求, prompt={}, size={}x{}, style={}",
-                request.getPrompt(), request.getWidth(), request.getHeight(), request.getStyle());
+        log.info("收到文生图请求, prompt={}, size={}x{}, style={}, category={}",
+                request.getPrompt(), request.getWidth(), request.getHeight(), request.getStyle(), request.getCategory());
         ElementGenerateResponse response = elementGenerateService.generate(request);
         return ResponseEntity.ok(response);
     }
@@ -50,11 +51,12 @@ public class ElementController {
             @Min(value = 64, message = "width 最小为 64") @Max(value = 2048, message = "width 最大为 2048") Integer width,
             @RequestParam("height") @NotNull(message = "height 不能为空")
             @Min(value = 64, message = "height 最小为 64") @Max(value = 2048, message = "height 最大为 2048") Integer height,
-            @RequestParam(value = "style", required = false) String style) {
-        log.info("收到图生图请求, prompt={}, size={}x{}, style={}, file={}",
-                prompt, width, height, style, image.getOriginalFilename());
+            @RequestParam(value = "style", required = false) String style,
+            @RequestParam("category") @NotNull(message = "category 不能为空") AssetCategory category) {
+        log.info("收到图生图请求, prompt={}, size={}x{}, style={}, category={}, file={}",
+                prompt, width, height, style, category, image.getOriginalFilename());
         ElementGenerateResponse response = elementGenerateService.generateFromImage(
-                image, prompt, width, height, style);
+                image, prompt, width, height, style, category);
         return ResponseEntity.ok(response);
     }
 }

@@ -3,6 +3,7 @@ package com.pixelcraftforge.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.pixelcraftforge.dto.ElementGenerateRequest;
 import com.pixelcraftforge.dto.ElementGenerateResponse;
+import com.pixelcraftforge.entity.AssetCategory;
 import com.pixelcraftforge.entity.AssetGenerationType;
 import com.pixelcraftforge.util.CacheKeyUtil;
 import org.slf4j.Logger;
@@ -62,13 +63,16 @@ public class ElementGenerateService {
             String prompt,
             int width,
             int height,
-            String style) {
+            String style,
+            AssetCategory category) {
         ReferenceImageService.PreparedReference reference = referenceImageService.prepare(image);
-        String cacheKey = CacheKeyUtil.buildImageToImageKey(prompt, width, height, style, reference.imageHash());
+        String categoryName = category == null ? "" : category.name();
+        String cacheKey = CacheKeyUtil.buildImageToImageKey(
+                prompt, width, height, style, categoryName, reference.imageHash());
         String cachedUrl = elementImageCache.getIfPresent(cacheKey);
         if (cachedUrl != null) {
             log.info("图生图命中缓存, key={}", cacheKey);
-            ElementGenerateRequest request = buildRequest(prompt, width, height, style);
+            ElementGenerateRequest request = buildRequest(prompt, width, height, style, category);
             generationRecordService.saveImageFromRequest(
                     AssetGenerationType.IMAGE_TO_IMAGE, request, cachedUrl, null, reference.referenceUrl(), true);
             return new ElementGenerateResponse(cachedUrl, true);
@@ -82,7 +86,7 @@ public class ElementGenerateService {
         );
         String storageUrl = imageStorageService.downloadAndSave(remoteImageUrl);
         elementImageCache.put(cacheKey, storageUrl);
-        ElementGenerateRequest request = buildRequest(prompt, width, height, style);
+        ElementGenerateRequest request = buildRequest(prompt, width, height, style, category);
         generationRecordService.saveImageFromRequest(
                 AssetGenerationType.IMAGE_TO_IMAGE, request, storageUrl, remoteImageUrl, reference.referenceUrl(), false);
         log.info("图生图完成并已缓存, key={}, reference={}, url={}",
@@ -90,12 +94,14 @@ public class ElementGenerateService {
         return new ElementGenerateResponse(storageUrl, false);
     }
 
-    private ElementGenerateRequest buildRequest(String prompt, int width, int height, String style) {
+    private ElementGenerateRequest buildRequest(
+            String prompt, int width, int height, String style, AssetCategory category) {
         ElementGenerateRequest request = new ElementGenerateRequest();
         request.setPrompt(prompt);
         request.setWidth(width);
         request.setHeight(height);
         request.setStyle(style);
+        request.setCategory(category);
         return request;
     }
 }

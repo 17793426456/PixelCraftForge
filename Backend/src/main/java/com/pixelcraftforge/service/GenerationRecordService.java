@@ -2,6 +2,7 @@ package com.pixelcraftforge.service;
 
 import com.pixelcraftforge.dto.ElementGenerateRequest;
 import com.pixelcraftforge.dto.VideoGenerateRequest;
+import com.pixelcraftforge.entity.AssetCategory;
 import com.pixelcraftforge.entity.GenerationRecord;
 import com.pixelcraftforge.entity.GenerationStatus;
 import com.pixelcraftforge.entity.AssetGenerationType;
@@ -27,6 +28,7 @@ public class GenerationRecordService {
     @Transactional
     public void saveImageResult(
             AssetGenerationType type,
+            AssetCategory category,
             String prompt,
             String style,
             Integer width,
@@ -37,6 +39,7 @@ public class GenerationRecordService {
             boolean cached) {
         GenerationRecord record = new GenerationRecord();
         record.setGenerationType(type);
+        record.setAssetCategory(category);
         record.setPrompt(prompt);
         record.setStyle(style);
         record.setWidth(width);
@@ -47,7 +50,7 @@ public class GenerationRecordService {
         record.setStatus(GenerationStatus.SUCCEEDED);
         record.setCached(cached);
         generationRecordRepository.save(record);
-        log.info("生成记录已入库, type={}, id={}", type, record.getId());
+        log.info("生成记录已入库, type={}, category={}, id={}", type, category, record.getId());
     }
 
     @Transactional
@@ -60,6 +63,7 @@ public class GenerationRecordService {
             boolean cached) {
         saveImageResult(
                 type,
+                request.getCategory(),
                 request.getPrompt(),
                 request.getStyle(),
                 request.getWidth(),
@@ -80,6 +84,7 @@ public class GenerationRecordService {
             String referenceUrl) {
         GenerationRecord record = new GenerationRecord();
         record.setGenerationType(type);
+        record.setAssetCategory(request.getCategory());
         record.setPrompt(request.getPrompt());
         record.setRatio(request.getRatio());
         record.setDuration(request.getDuration());
@@ -89,7 +94,7 @@ public class GenerationRecordService {
         record.setStatus(mapVideoStatus(initialStatus));
         record.setCached(false);
         GenerationRecord saved = generationRecordRepository.save(record);
-        log.info("视频任务记录已入库, taskId={}, id={}", externalTaskId, saved.getId());
+        log.info("视频任务记录已入库, taskId={}, category={}, id={}", externalTaskId, request.getCategory(), saved.getId());
         return saved;
     }
 
@@ -114,12 +119,17 @@ public class GenerationRecordService {
         });
     }
 
-    public Page<GenerationRecord> list(Pageable pageable) {
+    public Page<GenerationRecord> list(AssetGenerationType type, AssetCategory category, Pageable pageable) {
+        if (type != null && category != null) {
+            return generationRecordRepository.findByGenerationTypeAndAssetCategory(type, category, pageable);
+        }
+        if (type != null) {
+            return generationRecordRepository.findByGenerationType(type, pageable);
+        }
+        if (category != null) {
+            return generationRecordRepository.findByAssetCategory(category, pageable);
+        }
         return generationRecordRepository.findAll(pageable);
-    }
-
-    public Page<GenerationRecord> listByType(AssetGenerationType type, Pageable pageable) {
-        return generationRecordRepository.findByGenerationType(type, pageable);
     }
 
     private GenerationStatus mapVideoStatus(String status) {

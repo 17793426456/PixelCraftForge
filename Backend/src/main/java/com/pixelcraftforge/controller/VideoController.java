@@ -3,11 +3,13 @@ package com.pixelcraftforge.controller;
 import com.pixelcraftforge.dto.VideoGenerateRequest;
 import com.pixelcraftforge.dto.VideoTaskCreateResponse;
 import com.pixelcraftforge.dto.VideoTaskResponse;
+import com.pixelcraftforge.entity.AssetCategory;
 import com.pixelcraftforge.service.VideoGenerateService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,9 +41,9 @@ public class VideoController {
 
     @PostMapping("/generate")
     public ResponseEntity<VideoTaskCreateResponse> generate(@Valid @RequestBody VideoGenerateRequest request) {
-        log.info("收到文生视频请求, prompt={}, ratio={}, duration={}s, resolution={}, generateAudio={}",
+        log.info("收到文生视频请求, prompt={}, ratio={}, duration={}s, resolution={}, generateAudio={}, category={}",
                 request.getPrompt(), request.getRatio(), request.getDuration(), request.getResolution(),
-                request.getGenerateAudio());
+                request.getGenerateAudio(), request.getCategory());
         return ResponseEntity.ok(videoGenerateService.createTextToVideo(request));
     }
 
@@ -56,10 +58,12 @@ public class VideoController {
             @RequestParam(value = "resolution", defaultValue = "1080p")
             @Pattern(regexp = "^(480p|720p|1080p)$", message = "resolution 仅支持 480p/720p/1080p") String resolution,
             @RequestParam(value = "generateAudio", defaultValue = "true") Boolean generateAudio,
-            @RequestParam(value = "watermark", defaultValue = "false") Boolean watermark) {
-        VideoGenerateRequest request = buildRequest(prompt, ratio, duration, resolution, generateAudio, watermark);
-        log.info("收到图生视频请求, prompt={}, ratio={}, duration={}s, file={}",
-                prompt, ratio, duration, image.getOriginalFilename());
+            @RequestParam(value = "watermark", defaultValue = "false") Boolean watermark,
+            @RequestParam("category") @NotNull(message = "category 不能为空") AssetCategory category) {
+        VideoGenerateRequest request = buildRequest(
+                prompt, ratio, duration, resolution, generateAudio, watermark, category);
+        log.info("收到图生视频请求, prompt={}, ratio={}, duration={}s, category={}, file={}",
+                prompt, ratio, duration, category, image.getOriginalFilename());
         return ResponseEntity.ok(videoGenerateService.createImageToVideo(request, image));
     }
 
@@ -75,7 +79,8 @@ public class VideoController {
             Integer duration,
             String resolution,
             Boolean generateAudio,
-            Boolean watermark) {
+            Boolean watermark,
+            AssetCategory category) {
         VideoGenerateRequest request = new VideoGenerateRequest();
         request.setPrompt(prompt);
         request.setRatio(ratio);
@@ -83,6 +88,7 @@ public class VideoController {
         request.setResolution(resolution);
         request.setGenerateAudio(generateAudio);
         request.setWatermark(watermark);
+        request.setCategory(category);
         return request;
     }
 }
