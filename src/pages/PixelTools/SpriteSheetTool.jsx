@@ -9,6 +9,8 @@ import {
   splitImageGrid,
   triggerDownload,
 } from '../../lib/frameRonin/gifUtils.js'
+import { buildAtlasJson, downloadAtlasJson } from '../../lib/assets/atlasExport.js'
+import imageAtlasExport from '../../constants/features/image-atlas-export.js'
 import imageSpriteCut from '../../constants/features/image-sprite-cut.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 
@@ -39,8 +41,34 @@ export default function SpriteSheetTool() {
   const [gifFrames, setGifFrames] = useState([])
   const [previewUrls, setPreviewUrls] = useState([])
   const [loading, setLoading] = useState(false)
+  const [lastSplit, setLastSplit] = useState(null)
 
   useEffect(() => () => previewUrls.forEach((url) => URL.revokeObjectURL(url)), [previewUrls])
+
+  const exportAtlasJson = () => {
+    if (!lastSplit) {
+      message.warning('请先拆分精灵图')
+      return
+    }
+    const { img, fileName } = lastSplit
+    const cellW = Math.floor(img.naturalWidth / columns)
+    const cellH = Math.floor(img.naturalHeight / rows)
+    const frames = lastSplit.cells.map(({ index }) => ({
+      name: `frame_${String(index + 1).padStart(3, '0')}`,
+      x: (index % columns) * cellW,
+      y: Math.floor(index / columns) * cellH,
+      w: cellW,
+      h: cellH,
+    }))
+    const desc = buildAtlasJson({
+      imageName: `${fileName.replace(/\.[^.]+$/, '')}.png`,
+      sheetWidth: img.naturalWidth,
+      sheetHeight: img.naturalHeight,
+      frames,
+    })
+    downloadAtlasJson(desc, `${fileName.replace(/\.[^.]+$/, '')}_atlas.json`)
+    message.success('图集 JSON 已导出（Unity / Godot 可用）')
+  }
 
   const handleSplit = async () => {
     if (!spriteFile) {
@@ -53,6 +81,15 @@ export default function SpriteSheetTool() {
     try {
       const img = await loadImageFromFile(spriteFile)
       const cells = splitImageGrid(img, columns, rows)
+      const cellW = Math.floor(img.naturalWidth / columns)
+      const cellH = Math.floor(img.naturalHeight / rows)
+      const cellsWithPos = cells.map(({ canvas, index }) => ({
+        canvas,
+        index,
+        x: (index % columns) * cellW,
+        y: Math.floor(index / columns) * cellH,
+      }))
+      setLastSplit({ cells: cellsWithPos, img, fileName: spriteFile.name })
       const zip = new JSZip()
       const urls = []
       for (const { canvas, index } of cells) {
@@ -101,6 +138,7 @@ export default function SpriteSheetTool() {
   return (
   <>
     <FeatureCallout feature={imageSpriteCut} />
+    <FeatureCallout feature={imageAtlasExport} />
     <Tabs
       items={[
         {
@@ -122,6 +160,7 @@ export default function SpriteSheetTool() {
                 <Button type="primary" icon={<DownloadOutlined />} loading={loading} onClick={() => { void handleSplit() }}>
                   下载帧 ZIP
                 </Button>
+                <Button loading={loading} onClick={exportAtlasJson}>导出图集 JSON</Button>
               </div>
             </>
           ),
