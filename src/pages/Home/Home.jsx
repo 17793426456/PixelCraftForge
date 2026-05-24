@@ -14,6 +14,9 @@ import { brandLogo, BRAND_TAGLINE } from '../../constants/brand'
 import ScrollReveal from '../../components/ScrollReveal/ScrollReveal'
 import FeatureCatalog from '../../components/FeatureHub/FeatureCatalog.jsx'
 import assistRefTrace from '../../constants/features/assist-ref-trace.js'
+import { addAssetFromFile } from '../../lib/assets/localAssetStore.js'
+import { zipBlobs } from '../../lib/assets/imageExport.js'
+import { createPlaceholderPngBlob, placeholderBlobToDataUrl } from '../../lib/assets/placeholderAsset.js'
 import './Home.css'
 
 const { TextArea } = Input
@@ -100,25 +103,66 @@ export default function Home() {
     }
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt && !uploadedImage) {
       message.warning('请输入描述或上传参考图')
       return
     }
     setIsGenerating(true)
-    setTimeout(() => {
-      setGeneratedAssets(prev => [
-        ...prev,
-        ...Array.from({ length: 4 }, (_, i) => ({
-          id: Date.now() + i,
-          name: `素材_${prev.length + i + 1}`,
-          style: selectedStyle || '像素风',
-          size: selectedSize,
-        })),
-      ])
+    try {
+      const base = generatedAssets.length
+      const style = selectedStyle || '像素风'
+      const sizePx = parseInt(selectedSize, 10) || 128
+      const next = await Promise.all(
+        Array.from({ length: 4 }, async (_, i) => {
+          const name = `素材_${base + i + 1}`
+          const blob = await createPlaceholderPngBlob({ name, style, sizePx, seed: base + i })
+          const previewUrl = await placeholderBlobToDataUrl(blob)
+          return { id: Date.now() + i, name, style, size: selectedSize, previewUrl, blob }
+        }),
+      )
+      setGeneratedAssets((prev) => [...prev, ...next])
+      message.success('素材生成完成（本地占位预览，可入库或下载）')
+    } catch {
+      message.error('生成失败')
+    } finally {
       setIsGenerating(false)
-      message.success('素材生成完成！')
-    }, 1500)
+    }
+  }
+
+  const handleBatchDownload = async () => {
+    if (!generatedAssets.length) return
+    try {
+      const entries = await Promise.all(
+        generatedAssets.map(async (a) => ({
+          name: `${a.name}.png`,
+          blob: a.blob ?? (await (await fetch(a.previewUrl)).blob()),
+        })),
+      )
+      await zipBlobs(entries, 'generated-assets.zip')
+      message.success('已开始下载 ZIP')
+    } catch {
+      message.error('打包下载失败')
+    }
+  }
+
+  const handleSaveToLibrary = async () => {
+    if (!generatedAssets.length) return
+    try {
+      for (const a of generatedAssets) {
+        const blob = a.blob ?? (await (await fetch(a.previewUrl)).blob())
+        const file = new File([blob], `${a.name}.png`, { type: 'image/png' })
+        await addAssetFromFile(file, {
+          name: a.name,
+          style: a.style,
+          funcType: '道具物品类',
+          folder: '工作台生成',
+        })
+      }
+      message.success(`已入库 ${generatedAssets.length} 个素材`)
+    } catch {
+      message.error('入库失败')
+    }
   }
 
   return (
@@ -287,16 +331,25 @@ export default function Home() {
             className="surface-card results-card"
             extra={
               <Space>
-                <Button icon={<DownloadOutlined />} size="small" className="btn-ghost">批量下载</Button>
-                <Button icon={<FolderAddOutlined />} size="small" className="btn-ghost">一键入库</Button>
-                <Button icon={<ExportOutlined />} size="small" className="btn-ghost">分层导出</Button>
+                <Button icon={<DownloadOutlined />} size="small" className="btn-ghost" onClick={handleBatchDownload}>批量下载</Button>
+                <Button icon={<FolderAddOutlined />} size="small" className="btn-ghost" onClick={handleSaveToLibrary}>一键入库</Button>
+                <Button icon={<ExportOutlined />} size="small" className="btn-ghost" onClick={() => navigate('/library')}>打开仓库</Button>
               </Space>
             }
           >
             <Row gutter={[16, 16]}>
               {generatedAssets.map(asset => (
                 <Col key={asset.id} xs={12} sm={8} md={6} lg={4}>
-                  <Card hoverable size="small" className="result-item-card" cover={<div className="asset-preview"><IconFont type="icon-game" /></div>}>
+                  <Card
+                    hoverable
+                    size="small"
+                    className="result-item-card"
+                    cover={
+                      asset.previewUrl
+                        ? <img src={asset.previewUrl} alt={asset.name} className="asset-preview-img" />
+                        : <div className="asset-preview"><IconFont type="icon-game" /></div>
+                    }
+                  >
                     <Card.Meta title={asset.name} description={`${asset.style} · ${asset.size}`} />
                   </Card>
                 </Col>

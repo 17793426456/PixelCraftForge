@@ -542,6 +542,14 @@
   color: var(--color-text-primary) !important;
 }
 
+.asset-preview-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  background: var(--color-bg-elevated);
+}
+
 @media (max-width: 768px) {
   .hero-section {
     padding: 48px 16px 48px;
