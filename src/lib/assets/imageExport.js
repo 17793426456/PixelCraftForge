@@ -23,7 +23,7 @@ export async function blobToImage(blob) {
   }
 }
 
-export async function convertImageBlob(blob, { format = 'image/png', quality = 0.92, maxEdge = null, rotate = 0 } = {}) {
+export async function convertImageBlob(blob, { format = 'image/png', quality = 0.92, maxEdge = null, rotate = 0, flipH = false, flipV = false } = {}) {
   const img = await blobToImage(blob)
   let w = img.naturalWidth
   let h = img.naturalHeight
@@ -44,6 +44,7 @@ export async function convertImageBlob(blob, { format = 'image/png', quality = 0
   const ctx = canvas.getContext('2d')
   ctx.translate(canvas.width / 2, canvas.height / 2)
   ctx.rotate(rad)
+  ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1)
   ctx.drawImage(img, -w / 2, -h / 2, w, h)
   const out = await new Promise((resolve) => canvas.toBlob(resolve, format, quality))
   if (!out) throw new Error('转换失败')

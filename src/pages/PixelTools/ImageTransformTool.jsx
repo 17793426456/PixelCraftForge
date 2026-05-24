@@ -12,7 +12,11 @@ export default function ImageTransformTool() {
   const [quality, setQuality] = useState(92)
   const [maxEdge, setMaxEdge] = useState(512)
   const [format, setFormat] = useState('image/png')
+  const [flipH, setFlipH] = useState(false)
+  const [flipV, setFlipV] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const transformOpts = { format, quality: quality / 100, maxEdge, rotate, flipH, flipV }
 
   const apply = async () => {
     if (!file) {
@@ -21,7 +25,7 @@ export default function ImageTransformTool() {
     }
     setLoading(true)
     try {
-      const blob = await convertImageBlob(file, { format, quality: quality / 100, maxEdge, rotate })
+      const blob = await convertImageBlob(file, transformOpts)
       if (preview) URL.revokeObjectURL(preview)
       setPreview(URL.createObjectURL(blob))
     } catch (e) {
@@ -33,7 +37,7 @@ export default function ImageTransformTool() {
 
   const download = async () => {
     if (!file) return
-    const blob = await convertImageBlob(file, { format, quality: quality / 100, maxEdge, rotate })
+    const blob = await convertImageBlob(file, transformOpts)
     const ext = FORMAT_OPTIONS.find((f) => f.value === format)?.ext ?? 'png'
     triggerDownload(blob, `transform.${ext}`)
   }
@@ -52,6 +56,8 @@ export default function ImageTransformTool() {
         <span>质量 {quality}%</span>
         <Slider min={40} max={100} value={quality} onChange={setQuality} style={{ width: 100 }} />
         <Select value={format} onChange={setFormat} options={FORMAT_OPTIONS.map((f) => ({ value: f.value, label: f.label }))} />
+        <Button type={flipH ? 'primary' : 'default'} onClick={() => setFlipH((v) => !v)}>水平翻转</Button>
+        <Button type={flipV ? 'primary' : 'default'} onClick={() => setFlipV((v) => !v)}>垂直翻转</Button>
       </Space>
       <div className="pixel-tool-actions" style={{ marginTop: 12 }}>
         <Button icon={<RotateRightOutlined />} loading={loading} onClick={() => { void apply() }}>预览</Button>

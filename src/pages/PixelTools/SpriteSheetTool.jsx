@@ -162,6 +162,16 @@ export default function SpriteSheetTool() {
                 </Button>
                 <Button loading={loading} onClick={exportAtlasJson}>导出图集 JSON</Button>
               </div>
+              {previewUrls.length > 0 && (
+                <div className="sprite-preview-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, minmax(48px, 1fr))`, gap: 8, marginTop: 16, maxWidth: 640 }}>
+                  {previewUrls.map((url, i) => (
+                    <div key={url} style={{ textAlign: 'center' }}>
+                      <img src={url} alt={`帧 ${i + 1}`} style={{ width: '100%', background: '#1a1a22', borderRadius: 4 }} />
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{i + 1}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           ),
         },
