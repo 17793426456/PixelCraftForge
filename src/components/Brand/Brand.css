@@ -1,0 +1,30 @@
+.brand-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  line-height: 1.2;
+}
+
+.brand-name--stack {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.brand-name-zh {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.brand-name-en {
+  font-weight: 500;
+  font-size: 0.55em;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.72);
+  text-transform: none;
+}
+
+.brand-name--inline .brand-name-en {
+  font-size: 0.5em;
+  letter-spacing: 0.06em;
+}
