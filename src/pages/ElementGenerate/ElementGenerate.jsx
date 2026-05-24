@@ -7,7 +7,12 @@ import {
   ReloadOutlined, InfoCircleOutlined, RightOutlined, DownOutlined,
 } from '@ant-design/icons'
 import IconFont from '../../components/IconFont/IconFont'
+import uiDrawComponents from '../../constants/features/ui-draw-components.js'
+import uiStateSprites from '../../constants/features/ui-state-sprites.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import './ElementGenerate.css'
+
+const UI_STATE_PRESETS = ['normal', 'hover', 'disabled']
 
 const { TextArea } = Input
 
@@ -55,6 +60,7 @@ export default function ElementGenerate() {
   const [results, setResults] = useState([])
   const [filterTime, setFilterTime] = useState('全部时间')
   const [filterType, setFilterType] = useState('全部类型')
+  const [uiStateMode, setUiStateMode] = useState('normal')
 
   const currentModel = modelOptions.find(m => m.id === modelId) || modelOptions[0]
 
@@ -111,6 +117,7 @@ export default function ElementGenerate() {
             </button>
           </Tooltip>
         </div>
+        <FeatureCallout feature={uiDrawComponents} />
 
         <div className="jm-mode-tabs">
           {modeOptions.map(opt => (
@@ -223,6 +230,23 @@ export default function ElementGenerate() {
               <div className="jm-pills">
                 {countOptions.map(c => (
                   <button key={c} type="button" className={`jm-pill ${count === c ? 'active' : ''}`} onClick={() => setCount(c)}>{c}</button>
+                ))}
+              </div>
+            </div>
+
+            <FeatureCallout feature={uiStateSprites} />
+            <div className="jm-opt-group">
+              <span className="jm-opt-label">UI 状态图（切图命名）</span>
+              <div className="jm-pills">
+                {UI_STATE_PRESETS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`jm-pill ${uiStateMode === s ? 'active' : ''}`}
+                    onClick={() => setUiStateMode(s)}
+                  >
+                    {s}
+                  </button>
                 ))}
               </div>
             </div>
