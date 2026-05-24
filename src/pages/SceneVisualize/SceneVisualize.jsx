@@ -17,6 +17,7 @@ import sceneMapExport from '../../constants/features/scene-map-export.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import { exportSceneLayoutJson } from '../../lib/assetProject.js'
 import { triggerDownload } from '../../lib/assets/imageExport.js'
+import { generateSceneLayout } from '../../lib/scene/sceneLayoutEngine.js'
 import './SceneVisualize.css'
 
 const EXPORT_W = 800
@@ -157,6 +158,7 @@ export default function SceneVisualize() {
   const [activeLayer, setActiveLayer] = useState('mid')
   const [showCollision, setShowCollision] = useState(false)
   const [dragId, setDragId] = useState(null)
+  const [layoutSummary, setLayoutSummary] = useState('')
   const progressTimer = useRef(null)
   const canvasRef = useRef(null)
 
@@ -217,12 +219,18 @@ export default function SceneVisualize() {
     setTimeout(() => {
       if (progressTimer.current) clearInterval(progressTimer.current)
       setBuildProgress(100)
-      const filtered = DEFAULT_LAYOUT.filter((el) => activeElements.includes(el.type))
-      setPlacedElements(filtered)
+      const layout = generateSceneLayout({
+        prompt: scenePrompt.trim(),
+        activeElements,
+        customElements,
+        view: selectedView,
+      })
+      setPlacedElements(layout.elements)
+      setLayoutSummary(layout.summary)
       setIsBuilding(false)
       setSceneGenerated(true)
-      message.success('场景搭建完成！')
-    }, 2800)
+      message.success(`场景搭建完成 · ${layout.summary}`)
+    }, 1600)
   }
 
   const renderSceneToCanvas = () => {
@@ -255,7 +263,7 @@ export default function SceneVisualize() {
       ctx.fillStyle = meta.color
       ctx.font = '12px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(el.type, x, y + 4)
+      ctx.fillText(el.label || el.type, x, y + 4)
     }
     return canvas
   }
@@ -301,6 +309,7 @@ export default function SceneVisualize() {
   }
 
   const visiblePlaced = placedElements.filter((el) => {
+    if (el.layer) return el.layer === activeLayer
     const types = LAYER_TYPES[activeLayer] ?? []
     return types.includes(el.type)
   })
@@ -531,7 +540,7 @@ export default function SceneVisualize() {
                           <span className="scene-collision-box" aria-hidden="true" />
                         )}
                         <IconFont type={meta.icon} className="scene-icon" style={{ color: meta.color }} />
-                        <span style={{ color: meta.color, fontWeight: 500 }}>{el.type}</span>
+                        <span style={{ color: meta.color, fontWeight: 500 }}>{el.label || el.type}</span>
                       </div>
                     )
                   })}
@@ -541,6 +550,7 @@ export default function SceneVisualize() {
 
             {previewState === 'result' && (
               <div className="scene-preview-actions">
+                {layoutSummary && <span className="scene-layout-summary">{layoutSummary}</span>}
                 <FeatureCallout feature={sceneMapExport} />
                 <Button icon={<DownloadOutlined />} onClick={handleDownload}>下载场景图</Button>
                 <Button icon={<DownloadOutlined />} onClick={handleExportMapJson}>导出地图 JSON</Button>
