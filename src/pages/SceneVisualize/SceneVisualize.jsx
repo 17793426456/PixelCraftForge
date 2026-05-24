@@ -16,7 +16,11 @@ import sceneLayerZ from '../../constants/features/scene-layer-z.js'
 import sceneMapExport from '../../constants/features/scene-map-export.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import { exportSceneLayoutJson } from '../../lib/assetProject.js'
+import { triggerDownload } from '../../lib/assets/imageExport.js'
 import './SceneVisualize.css'
+
+const EXPORT_W = 800
+const EXPORT_H = 420
 
 const SCENE_LAYERS = [
   { key: 'sky', label: '天空层（远景）' },
@@ -221,9 +225,52 @@ export default function SceneVisualize() {
     }, 2800)
   }
 
+  const renderSceneToCanvas = () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = EXPORT_W
+    canvas.height = EXPORT_H
+    const ctx = canvas.getContext('2d')
+    const grad = ctx.createLinearGradient(0, 0, 0, EXPORT_H)
+    grad.addColorStop(0, '#1a1028')
+    grad.addColorStop(1, '#0f0f12')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, EXPORT_W, EXPORT_H)
+    for (const el of placedElements) {
+      const meta = getElementMeta(el.type)
+      const x = (el.x / 100) * EXPORT_W
+      const y = (el.y / 100) * EXPORT_H
+      const w = 72
+      const h = 48
+      ctx.fillStyle = `${meta.color}33`
+      ctx.strokeStyle = meta.color
+      ctx.lineWidth = 2
+      ctx.fillRect(x - w / 2, y - h / 2, w, h)
+      ctx.strokeRect(x - w / 2, y - h / 2, w, h)
+      if (showCollision) {
+        ctx.setLineDash([4, 4])
+        ctx.strokeStyle = '#fa541c'
+        ctx.strokeRect(x - w / 2 - 6, y - h / 2 - 6, w + 12, h + 12)
+        ctx.setLineDash([])
+      }
+      ctx.fillStyle = meta.color
+      ctx.font = '12px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(el.type, x, y + 4)
+    }
+    return canvas
+  }
+
   const handleDownload = () => {
-    if (!canvasRef.current) return
-    message.success('场景预览图已开始下载（演示）')
+    if (!placedElements.length) {
+      message.warning('请先生成场景')
+      return
+    }
+    renderSceneToCanvas().toBlob((blob) => {
+      if (blob) {
+        triggerDownload(blob, 'scene-preview.png')
+        message.success('场景预览图已下载')
+      }
+    })
   }
 
   const handleExportMapJson = () => {
@@ -231,11 +278,18 @@ export default function SceneVisualize() {
       message.warning('请先生成场景')
       return
     }
-    const blob = exportSceneLayoutJson(placedElements, {
+    const elements = placedElements.map((el) => ({
+      ...el,
+      collision: showCollision
+        ? { x: el.x, y: el.y, w: 12, h: 10, unit: 'percent' }
+        : null,
+    }))
+    const blob = exportSceneLayoutJson(elements, {
       view: selectedView,
       prompt: scenePrompt,
       layers: SCENE_LAYERS.map((l) => l.key),
-      collision: showCollision,
+      activeLayer,
+      collisionEnabled: showCollision,
     })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
