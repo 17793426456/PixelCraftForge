@@ -36,6 +36,7 @@ export default function AssetLibrary() {
   const [selectedIds, setSelectedIds] = useState([])
   const [previewAsset, setPreviewAsset] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [editMeta, setEditMeta] = useState({ funcType: '', matType: '', folder: '', name: '' })
   const [snapshots, setSnapshots] = useState(() => loadProjectSnapshots())
   const [loading, setLoading] = useState(false)
   const thumbMap = useAssetThumbnails(assets)
@@ -54,6 +55,12 @@ export default function AssetLibrary() {
       setPreviewUrl(null)
       return undefined
     }
+    setEditMeta({
+      name: previewAsset.name,
+      funcType: previewAsset.funcType,
+      matType: previewAsset.matType,
+      folder: previewAsset.folder || '默认',
+    })
     const url = URL.createObjectURL(assetToBlob(previewAsset))
     setPreviewUrl(url)
     return () => URL.revokeObjectURL(url)
@@ -330,9 +337,19 @@ export default function AssetLibrary() {
         </div>
       </div>
 
-      <Modal open={!!previewAsset} title={previewAsset?.name} onCancel={() => setPreviewAsset(null)} width={480} footer={(
-        <Space>
+      <Modal open={!!previewAsset} title={previewAsset?.name} onCancel={() => setPreviewAsset(null)} width={520} footer={(
+        <Space wrap>
           <Button onClick={() => previewAsset && updateAsset(previewAsset.id, { funcType: 'UI交互类' }).then(refresh)}>标为 UI</Button>
+          <Button onClick={() => {
+            if (!previewAsset) return
+            void updateAsset(previewAsset.id, editMeta).then(() => {
+              refresh()
+              message.success('元数据已更新')
+              setPreviewAsset((p) => (p ? { ...p, ...editMeta } : p))
+            })
+          }}
+          >保存元数据
+          </Button>
           <Button type="primary" icon={<DownloadOutlined />} onClick={() => {
             if (!previewAsset) return
             const blob = assetToBlob(previewAsset)
@@ -353,10 +370,16 @@ export default function AssetLibrary() {
         )}
         {previewAsset && (
           <div className="library-preview-detail">
-            <p><strong>功能：</strong>{previewAsset.funcType}</p>
-            <p><strong>材质：</strong>{previewAsset.matType}</p>
-            <p><strong>文件夹：</strong>{previewAsset.folder}</p>
+            <p><strong>文件名</strong></p>
+            <Input value={editMeta.name} onChange={(e) => setEditMeta((m) => ({ ...m, name: e.target.value }))} style={{ marginBottom: 12 }} />
+            <p><strong>功能分类</strong></p>
+            <Select value={editMeta.funcType} onChange={(v) => setEditMeta((m) => ({ ...m, funcType: v }))} options={functionCategories.filter((c) => c !== '全部').map((c) => ({ label: c, value: c }))} style={{ width: '100%', marginBottom: 12 }} />
+            <p><strong>材质分类</strong></p>
+            <Select value={editMeta.matType} onChange={(v) => setEditMeta((m) => ({ ...m, matType: v }))} options={materialCategories.filter((c) => c !== '全部').map((c) => ({ label: c, value: c }))} style={{ width: '100%', marginBottom: 12 }} />
+            <p><strong>文件夹</strong></p>
+            <Input value={editMeta.folder} onChange={(e) => setEditMeta((m) => ({ ...m, folder: e.target.value }))} style={{ marginBottom: 12 }} />
             <p><strong>类型：</strong>{previewAsset.mimeType}</p>
+            <p><strong>尺寸：</strong>{previewAsset.width && previewAsset.height ? `${previewAsset.width}×${previewAsset.height}` : `${(previewAsset.sizeBytes / 1024).toFixed(1)} KB`}</p>
           </div>
         )}
       </Modal>
