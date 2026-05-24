@@ -9,6 +9,8 @@ import IconFont from '../../components/IconFont/IconFont'
 import uiLayoutStyle from '../../constants/features/ui-layout-style.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import { applyLocalTransform } from '../../lib/customize/localImageTransform.js'
+import { saveDataUrlToLibrary } from '../../lib/assets/saveToLibrary.js'
+import { triggerDownload } from '../../lib/assets/imageExport.js'
 import '../ElementGenerate/ElementGenerate.css'
 import './ElementCustomize.css'
 
@@ -38,7 +40,7 @@ export default function ElementCustomize() {
   const [previewVersion, setPreviewVersion] = useState(0)
   const [processedPreview, setProcessedPreview] = useState(null)
   const [filterStatus, setFilterStatus] = useState('全部素材')
-  const [credits] = useState(40)
+  const [targetColor, setTargetColor] = useState('#a855f7')
 
   const handleImport = (info) => {
     const files = info.fileList.map((f, i) => ({
@@ -65,6 +67,8 @@ export default function ElementCustomize() {
       const dataUrl = await applyLocalTransform(selectedElement.url, {
         activeAttr,
         prompt: modifyPrompt,
+        targetColor: activeAttr === 'color' ? targetColor : undefined,
+        keepStructure,
       })
       setProcessedPreview(dataUrl)
       setPreviewVersion((v) => v + 1)
@@ -97,6 +101,32 @@ export default function ElementCustomize() {
     if (filterStatus === '未修改') return !el.modified
     return true
   })
+
+  const [credits] = useState(40)
+
+  const handleSave = async () => {
+    const targets = importedElements.filter((el) => el.processedUrl || (el.id === selectedElement?.id && processedPreview))
+    if (!targets.length) {
+      message.warning('请先应用修改后再保存')
+      return
+    }
+    try {
+      for (const el of targets) {
+        const url = el.processedUrl || processedPreview
+        if (!url) continue
+        const res = await fetch(url)
+        const blob = await res.blob()
+        triggerDownload(blob, `${el.name.replace(/\.[^.]+$/, '')}_modified.png`)
+        await saveDataUrlToLibrary(url, `${el.name.replace(/\.[^.]+$/, '')}_modified.png`, {
+          funcType: '道具物品类',
+          folder: '元素改造',
+        })
+      }
+      message.success(`已下载并入库 ${targets.length} 个改造结果`)
+    } catch {
+      message.error('保存失败')
+    }
+  }
 
   return (
     <div className="jm-workspace cust-workspace">
@@ -168,7 +198,7 @@ export default function ElementCustomize() {
             {activeAttr === 'color' && (
               <div className="jm-opt-group cust-color-row">
                 <span className="jm-opt-label">目标色</span>
-                <ColorPicker defaultValue="#a855f7" />
+                <ColorPicker value={targetColor} onChange={(c) => setTargetColor(c.toHexString())} />
               </div>
             )}
 
@@ -200,8 +230,8 @@ export default function ElementCustomize() {
               <IconFont type="icon-flash" /> {credits}
             </span>
           </Button>
-          <Button block className="cust-save-btn" icon={<SaveOutlined />}>
-            保存结果
+          <Button block className="cust-save-btn" icon={<SaveOutlined />} onClick={() => { void handleSave() }}>
+            保存结果（下载 + 入库）
           </Button>
         </div>
       </aside>
