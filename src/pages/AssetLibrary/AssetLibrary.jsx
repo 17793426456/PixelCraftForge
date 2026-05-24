@@ -18,6 +18,7 @@ import {
   addAssetFromFile, assetToBlob, deleteAsset, getImageDimensions, listAssets, updateAsset,
 } from '../../lib/assets/localAssetStore.js'
 import { convertImageBlob, FORMAT_OPTIONS, zipBlobs } from '../../lib/assets/imageExport.js'
+import { useAssetThumbnails } from '../../hooks/useAssetThumbnails.js'
 import './AssetLibrary.css'
 
 const functionCategories = ['全部', '角色类', '道具物品类', '场景环境类', 'UI交互类', '特效动作类', '地图瓦片类']
@@ -37,6 +38,7 @@ export default function AssetLibrary() {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [snapshots, setSnapshots] = useState(() => loadProjectSnapshots())
   const [loading, setLoading] = useState(false)
+  const thumbMap = useAssetThumbnails(assets)
 
   const refresh = useCallback(async () => {
     const list = await listAssets()
@@ -159,6 +161,22 @@ export default function AssetLibrary() {
     }
   }
 
+  const handleBatchDownload = async () => {
+    const targets = selectedAssets.length ? selectedAssets : filtered
+    if (!targets.length) {
+      message.warning('没有可下载的素材')
+      return
+    }
+    setLoading(true)
+    try {
+      const entries = targets.map((a) => ({ name: a.name, blob: assetToBlob(a) }))
+      await zipBlobs(entries, 'assets_batch.zip')
+      message.success(`已打包下载 ${entries.length} 个文件`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleDelete = async (id) => {
     await deleteAsset(id)
     setSelectedIds((prev) => prev.filter((x) => x !== id))
@@ -240,6 +258,7 @@ export default function AssetLibrary() {
             <div className="library-toolbar atelier-enter atelier-enter--2">
               <span className="library-count">共 {filtered.length} 个素材 · 已选 {selectedIds.length}</span>
               <Space wrap>
+                <Button icon={<DownloadOutlined />} loading={loading} onClick={() => { void handleBatchDownload() }}>批量下载</Button>
                 <Select value={convertFormat} onChange={setConvertFormat} options={FORMAT_OPTIONS.map((f) => ({ label: f.label, value: f.value }))} style={{ width: 100 }} />
                 <Button icon={<SwapOutlined />} loading={loading} onClick={() => { void handleBatchConvert() }}>格式转换 ZIP</Button>
                 <Button icon={<ExportOutlined />} loading={loading} onClick={() => { void handleUiPack() }}>UI 打包</Button>
@@ -290,8 +309,8 @@ export default function AssetLibrary() {
                         tabIndex={0}
                         onClick={() => { setPreviewAsset(asset); toggleSelect(asset.id) }}
                       >
-                        {asset.mimeType?.startsWith('image/') && previewAsset?.id === asset.id && previewUrl ? (
-                          <img src={previewUrl} alt="" className="library-thumb-img" />
+                        {thumbMap[asset.id] ? (
+                          <img src={thumbMap[asset.id]} alt="" className="library-thumb-img" />
                         ) : (
                           <span className="library-thumb-ext">{asset.name.split('.').pop()?.toUpperCase()}</span>
                         )}
