@@ -1068,6 +1068,22 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.vf-engine-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.vf-engine-tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  background: rgba(168, 85, 247, 0.12);
+  color: #c4b5fd;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
 .vf-export-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

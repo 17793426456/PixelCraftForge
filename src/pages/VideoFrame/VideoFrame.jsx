@@ -26,7 +26,13 @@ import {
 } from '../../lib/videoFrame/exportBundle.js'
 import { buildSpineBundleZip, getSpineZipFileName } from '../../lib/videoFrame/spineBundle.js'
 import { formatTimestamp } from '../../lib/videoFrame/time.js'
+import imageAtlasExport from '../../constants/features/image-atlas-export.js'
+import animBoneRig from '../../constants/features/anim-bone-rig.js'
+import vfxPreviewTiming from '../../constants/features/vfx-preview-timing.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import './VideoFrame.css'
+
+const ENGINE_EXPORT_TAGS = ['Unity Sprite', 'Godot', 'Spine', 'Web GIF', 'PNG ZIP']
 
 const MAX_EXTRACTED_FRAMES = 180
 const DEFAULT_FPS = 8
@@ -868,6 +874,7 @@ export default function VideoFrame() {
       {videoFile && !extractComplete && (
         <div className="vf-advanced-panel">
           <div className="vf-panel-block">
+            <FeatureCallout feature={vfxPreviewTiming} />
             <div className="vf-panel-title"><IconFont type="icon-video" /> 片段截取</div>
             <div className="vf-segment-meta">
               <span>{formatTimestamp(segmentStart)} — {formatTimestamp(segmentEnd)}</span>
@@ -957,6 +964,13 @@ export default function VideoFrame() {
                 </div>
               </>
             )}
+            <FeatureCallout feature={imageAtlasExport}>
+              <div className="vf-engine-tags">
+                {ENGINE_EXPORT_TAGS.map((tag) => (
+                  <span key={tag} className="vf-engine-tag">{tag}</span>
+                ))}
+              </div>
+            </FeatureCallout>
             <div className="vf-export-grid" style={{ marginTop: 16 }}>
               <label>
                 列数
@@ -1123,6 +1137,7 @@ export default function VideoFrame() {
 
           {extractComplete && (
           <div className="vf-spine-panel">
+            <FeatureCallout feature={animBoneRig} />
             <div className="vf-panel-title"><IconFont type="icon-model" /> Spine 导出</div>
             <div className="vf-spine-fields">
               <label>
