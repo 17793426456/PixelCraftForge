@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Button, Upload, message } from 'antd'
-import { DownloadOutlined, AppstoreOutlined } from '@ant-design/icons'
+import { Button, Upload, message, Checkbox, Space, InputNumber } from 'antd'
+import { DownloadOutlined, AppstoreOutlined, SaveOutlined } from '@ant-design/icons'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import uiDrawComponents from '../../constants/features/ui-draw-components.js'
 import uiStateSprites from '../../constants/features/ui-state-sprites.js'
 import uiPackExport from '../../constants/features/ui-pack-export.js'
 import { convertImageBlob, zipBlobs } from '../../lib/assets/imageExport.js'
+import { saveBlobToLibrary } from '../../lib/assets/saveToLibrary.js'
 
 const STATES = [
   { key: 'normal', label: '普通', filter: 'none' },
@@ -13,55 +14,121 @@ const STATES = [
   { key: 'disabled', label: '禁用', filter: 'grayscale(1) opacity(0.55)' },
 ]
 
+function drawButtonTemplate({ width, height, label, variant = 'primary' }) {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  const r = Math.min(12, height / 3)
+  ctx.fillStyle = variant === 'primary' ? '#7c3aed' : '#2d2d3a'
+  ctx.beginPath()
+  ctx.moveTo(r, 0)
+  ctx.lineTo(width - r, 0)
+  ctx.quadraticCurveTo(width, 0, width, r)
+  ctx.lineTo(width, height - r)
+  ctx.quadraticCurveTo(width, height, width - r, height)
+  ctx.lineTo(r, height)
+  ctx.quadraticCurveTo(0, height, 0, height - r)
+  ctx.lineTo(0, r)
+  ctx.quadraticCurveTo(0, 0, r, 0)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'
+  ctx.stroke()
+  ctx.fillStyle = '#fff'
+  ctx.font = `bold ${Math.floor(height * 0.38)}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label, width / 2, height / 2)
+  return canvas
+}
+
+async function renderStatesFromSource(source, scale = 1) {
+  const out = {}
+  let blob = source
+  if (source instanceof HTMLCanvasElement) {
+    blob = await new Promise((r) => source.toBlob(r, 'image/png'))
+  }
+  for (const s of STATES) {
+    const converted = await convertImageBlob(blob, { format: 'image/png', maxEdge: scale > 1 ? null : undefined })
+    const url = URL.createObjectURL(converted)
+    const img = await new Promise((res, rej) => {
+      const el = new Image()
+      el.onload = () => res(el)
+      el.onerror = rej
+      el.src = url
+    })
+    URL.revokeObjectURL(url)
+    let w = img.naturalWidth * scale
+    let h = img.naturalHeight * scale
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    ctx.filter = s.filter
+    ctx.drawImage(img, 0, 0, w, h)
+    const previewUrl = canvas.toDataURL('image/png')
+    const pngBlob = await new Promise((r) => canvas.toBlob(r, 'image/png'))
+    out[s.key] = { previewUrl, blob: pngBlob, label: s.label }
+  }
+  return out
+}
+
 export default function UiKitStudio() {
   const [file, setFile] = useState(null)
   const [previews, setPreviews] = useState({})
+  const [export2x, setExport2x] = useState(false)
+  const [templateLabel, setTemplateLabel] = useState('开始游戏')
+  const [templateW, setTemplateW] = useState(160)
+  const [templateH, setTemplateH] = useState(48)
+  const [mode, setMode] = useState('upload')
 
   useEffect(() => {
-    if (!file) {
-      setPreviews({})
+    if (mode !== 'upload' || !file) {
+      if (mode === 'upload') setPreviews({})
       return undefined
     }
     let cancelled = false
     void (async () => {
-      const out = {}
-      for (const s of STATES) {
-        const blob = await convertImageBlob(file, { format: 'image/png' })
-        const url = URL.createObjectURL(blob)
-        const img = await new Promise((res, rej) => {
-          const el = new Image()
-          el.onload = () => res(el)
-          el.onerror = rej
-          el.src = url
-        })
-        URL.revokeObjectURL(url)
-        const canvas = document.createElement('canvas')
-        canvas.width = img.naturalWidth
-        canvas.height = img.naturalHeight
-        const ctx = canvas.getContext('2d')
-        ctx.filter = s.filter
-        ctx.drawImage(img, 0, 0)
-        const previewUrl = canvas.toDataURL('image/png')
-        const pngBlob = await new Promise((r) => canvas.toBlob(r, 'image/png'))
-        out[s.key] = { previewUrl, blob: pngBlob, label: s.label }
-      }
+      const out = await renderStatesFromSource(file, export2x ? 2 : 1)
       if (!cancelled) setPreviews(out)
     })()
     return () => { cancelled = true }
-  }, [file])
+  }, [file, export2x, mode])
+
+  const generateFromTemplate = async () => {
+    const canvas = drawButtonTemplate({ width: templateW, height: templateH, label: templateLabel })
+    const out = await renderStatesFromSource(canvas, export2x ? 2 : 1)
+    setPreviews(out)
+    message.success('已从模板生成三态预览')
+  }
 
   const handleExport = async () => {
     if (!Object.keys(previews).length) {
-      message.warning('请先上传 UI 切图')
+      message.warning('请先生成或上传 UI 切图')
       return
     }
-    const base = file.name.replace(/\.[^.]+$/, '')
+    const base = mode === 'template' ? templateLabel.replace(/\s+/g, '_') : (file?.name.replace(/\.[^.]+$/, '') ?? 'ui')
+    const suffix = export2x ? '@2x' : ''
     const entries = STATES.filter((s) => previews[s.key]?.blob).map((s) => ({
-      name: `${base}_${s.key}.png`,
+      name: `${base}_${s.key}${suffix}.png`,
       blob: previews[s.key].blob,
     }))
-    await zipBlobs(entries, `${base}_ui_states.zip`)
+    await zipBlobs(entries, `${base}_ui_states${suffix}.zip`)
     message.success('三态 UI 资源包已下载')
+  }
+
+  const saveToLibrary = async () => {
+    const normal = previews.normal?.blob
+    if (!normal) {
+      message.warning('请先生成三态图')
+      return
+    }
+    await saveBlobToLibrary(normal, `ui_${templateLabel || 'button'}_normal.png`, {
+      funcType: 'UI交互类',
+      folder: 'UI工作室',
+    })
+    message.success('normal 态已存入素材仓库')
   }
 
   return (
@@ -69,16 +136,36 @@ export default function UiKitStudio() {
       <div className="atelier-page atelier-page--wide">
         <header className="atelier-hero">
           <h1 className="atelier-title"><AppstoreOutlined /> UI 素材工作室</h1>
-          <p className="atelier-subtitle">上传按钮/图标，自动生成 normal / hover / disabled 三态切图并 ZIP 打包</p>
+          <p className="atelier-subtitle">上传切图或绘制按钮模板，生成 normal / hover / disabled 三态并打包</p>
         </header>
         <FeatureCallout feature={uiDrawComponents} />
         <FeatureCallout feature={uiStateSprites} />
         <FeatureCallout feature={uiPackExport} />
-        <div style={{ marginBottom: 20, display: 'flex', gap: 12 }}>
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Button type={mode === 'upload' ? 'primary' : 'default'} onClick={() => setMode('upload')}>上传模式</Button>
+          <Button type={mode === 'template' ? 'primary' : 'default'} onClick={() => setMode('template')}>模板绘制</Button>
+          <Checkbox checked={export2x} onChange={(e) => setExport2x(e.target.checked)}>@2x 导出</Checkbox>
+        </Space>
+        {mode === 'upload' ? (
           <Upload beforeUpload={(f) => { setFile(f); return false }} showUploadList={false} accept="image/*">
             <Button>上传 UI 图</Button>
           </Upload>
+        ) : (
+          <Space wrap style={{ marginBottom: 16 }}>
+            <InputNumber min={80} max={320} value={templateW} onChange={(v) => setTemplateW(v ?? 160)} addonBefore="宽" />
+            <InputNumber min={24} max={96} value={templateH} onChange={(v) => setTemplateH(v ?? 48)} addonBefore="高" />
+            <input
+              value={templateLabel}
+              onChange={(e) => setTemplateLabel(e.target.value)}
+              placeholder="按钮文字"
+              style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff' }}
+            />
+            <Button type="primary" onClick={() => { void generateFromTemplate() }}>生成三态</Button>
+          </Space>
+        )}
+        <div style={{ marginBottom: 20, display: 'flex', gap: 12 }}>
           <Button type="primary" icon={<DownloadOutlined />} onClick={() => { void handleExport() }}>导出三态 ZIP</Button>
+          <Button icon={<SaveOutlined />} onClick={() => { void saveToLibrary() }}>存入仓库</Button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           {STATES.map((s) => (
