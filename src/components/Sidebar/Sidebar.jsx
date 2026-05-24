@@ -16,26 +16,29 @@ const navGroups = [
     items: [{ key: '/', label: '首页', Icon: HomeOutlined }],
   },
   {
-    title: '创作',
+    title: '图片素材',
     items: [
       { key: '/generate', label: '图片生成', Icon: HighlightOutlined },
-      { key: '/video-generate', label: '视频生成', Icon: PlayCircleOutlined },
       { key: '/customize', label: '元素改造', Icon: EditOutlined },
+      { key: '/pixel-tools', label: '像素工具箱', Icon: BlockOutlined },
     ],
   },
   {
-    title: '工具',
+    title: '动画 / 视频',
     items: [
+      { key: '/video-generate', label: '视频生成', Icon: PlayCircleOutlined },
       { key: '/video-frame', label: 'AI 抽帧', Icon: VideoCameraOutlined },
-      { key: '/pixel-tools', label: '像素工具箱', Icon: BlockOutlined },
-      { key: '/sound-effect', label: '音效生成', Icon: SoundOutlined },
     ],
+  },
+  {
+    title: '场景地图',
+    items: [{ key: '/scene', label: '场景搭建', Icon: PictureOutlined }],
   },
   {
     title: '资源',
     items: [
-      { key: '/scene', label: '场景搭建', Icon: PictureOutlined },
       { key: '/library', label: '素材仓库', Icon: AppstoreOutlined },
+      { key: '/sound-effect', label: '音效生成', Icon: SoundOutlined },
     ],
   },
 ]
