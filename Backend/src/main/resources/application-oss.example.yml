@@ -1,0 +1,13 @@
+# 复制为 application-local.yml 中的片段，或设置 spring.profiles.active=oss 并创建 application-oss.yml
+# 切勿将真实密钥提交到 Git
+
+app:
+  storage:
+    type: oss
+  oss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: 你的AccessKeyId
+    access-key-secret: 你的AccessKeySecret
+    bucket: 你的Bucket名称
+    # 公网访问前缀：Bucket 域名或已绑定的自定义域名
+    public-base-url: https://你的Bucket.oss-cn-beijing.aliyuncs.com
