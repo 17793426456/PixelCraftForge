@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Menu } from 'antd'
 import {
   HomeOutlined, HighlightOutlined, EditOutlined, VideoCameraOutlined,
-  SoundOutlined, PictureOutlined, AppstoreOutlined,
+  SoundOutlined, BorderOutlined, AppstoreOutlined,
 } from '@ant-design/icons'
 import BrandName from '../Brand/BrandName'
 import { brandLogo } from '../../constants/brand'
@@ -14,7 +14,7 @@ const navItems = [
   { key: '/customize', label: '元素改造', icon: <EditOutlined /> },
   { key: '/video-frame', label: 'AI抽帧', icon: <VideoCameraOutlined /> },
   { key: '/sound-effect', label: '音效生成', icon: <SoundOutlined /> },
-  { key: '/scene', label: '场景搭建', icon: <PictureOutlined /> },
+  { key: '/level-editor', label: '关卡编辑器', icon: <BorderOutlined /> },
   { key: '/library', label: '素材仓库', icon: <AppstoreOutlined /> },
 ]
 

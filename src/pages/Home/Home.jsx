@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { Button, Upload, Card, Row, Col, message, Space, Input, Tag } from 'antd'
 import {
   UploadOutlined, ThunderboltOutlined, DownloadOutlined, FolderAddOutlined, ExportOutlined,
-  HighlightOutlined, EditOutlined, VideoCameraOutlined, SoundOutlined, PictureOutlined, AppstoreOutlined,
+  HighlightOutlined, EditOutlined, VideoCameraOutlined, SoundOutlined, AppstoreOutlined,
   RocketOutlined, BgColorsOutlined, FileImageOutlined, ApiOutlined, PlayCircleOutlined,
-  RightOutlined, BlockOutlined,
+  RightOutlined, BlockOutlined, BorderOutlined,
 } from '@ant-design/icons'
 import IconFont from '../../components/IconFont/IconFont'
 import PlanetAnimation from '../../components/PlanetAnimation/PlanetAnimation'
@@ -40,7 +40,7 @@ const modules = [
   { path: '/video-frame', icon: <VideoCameraOutlined />, title: 'AI 视频抽帧', desc: '关键帧抽取与精灵图集' },
   { path: '/pixel-tools', icon: <BlockOutlined />, title: '像素工具箱', desc: 'GIF·精灵图·像素化·效率工具' },
   { path: '/sound-effect', icon: <SoundOutlined />, title: '专属音效生成', desc: '4 大分类音效库' },
-  { path: '/scene', icon: <PictureOutlined />, title: '场景可视化搭建', desc: '文字描述自动排布场景' },
+  { path: '/level-editor', icon: <BorderOutlined />, title: '2D 关卡编辑器', desc: '文字描述 + 拖拽编辑，导出 JSON' },
   { path: '/library', icon: <AppstoreOutlined />, title: '素材仓库', desc: '功能 + 材质双重分类' },
 ]
 

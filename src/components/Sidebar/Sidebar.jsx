@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Drawer, Tooltip } from 'antd'
 import {
   HomeOutlined, HighlightOutlined, EditOutlined, VideoCameraOutlined,
-  SoundOutlined, PictureOutlined, AppstoreOutlined, PlayCircleOutlined,
+  SoundOutlined, AppstoreOutlined, PlayCircleOutlined,
   BlockOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BgColorsOutlined,
   BorderOutlined, ThunderboltOutlined,
 } from '@ant-design/icons'
@@ -37,8 +37,7 @@ const navGroups = [
   {
     title: '场景地图',
     items: [
-      { key: '/scene', label: '场景搭建', Icon: PictureOutlined },
-      { key: '/map-editor', label: '地图编辑器', Icon: BorderOutlined },
+      { key: '/level-editor', label: '关卡编辑器', Icon: BorderOutlined },
     ],
   },
   {
