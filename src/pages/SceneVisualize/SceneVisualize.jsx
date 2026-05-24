@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Button, Tag, message, Input, Progress, Tooltip, Space,
+  Button, Tag, message, Input, Progress, Tooltip, Space, Segmented, Checkbox,
 } from 'antd'
 import {
   PictureOutlined, BulbOutlined, AppstoreOutlined, EditOutlined,
@@ -10,7 +10,25 @@ import {
   ThunderboltOutlined, RocketOutlined, FileTextOutlined,
 } from '@ant-design/icons'
 import IconFont from '../../components/IconFont/IconFont'
+import sceneTileBuild from '../../constants/features/scene-tile-build.js'
+import sceneObjectCollision from '../../constants/features/scene-object-collision.js'
+import sceneLayerZ from '../../constants/features/scene-layer-z.js'
+import sceneMapExport from '../../constants/features/scene-map-export.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
+import { exportSceneLayoutJson } from '../../lib/assetProject.js'
 import './SceneVisualize.css'
+
+const SCENE_LAYERS = [
+  { key: 'sky', label: '天空层（远景）' },
+  { key: 'mid', label: '中景（建筑/植被）' },
+  { key: 'near', label: '近景（角色/道具）' },
+]
+
+const LAYER_TYPES = {
+  sky: ['天空'],
+  mid: ['建筑', '植被', '地形'],
+  near: ['角色', '道具'],
+}
 
 const { TextArea } = Input
 
@@ -132,6 +150,8 @@ export default function SceneVisualize() {
   const [sceneGenerated, setSceneGenerated] = useState(false)
   const [zoomed, setZoomed] = useState(false)
   const [promptFocus, setPromptFocus] = useState(true)
+  const [activeLayer, setActiveLayer] = useState('mid')
+  const [showCollision, setShowCollision] = useState(false)
   const progressTimer = useRef(null)
   const canvasRef = useRef(null)
 
@@ -205,6 +225,31 @@ export default function SceneVisualize() {
     message.success('场景预览图已开始下载（演示）')
   }
 
+  const handleExportMapJson = () => {
+    if (!placedElements.length) {
+      message.warning('请先生成场景')
+      return
+    }
+    const blob = exportSceneLayoutJson(placedElements, {
+      view: selectedView,
+      prompt: scenePrompt,
+      layers: SCENE_LAYERS.map((l) => l.key),
+      collision: showCollision,
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'scene-layout.json'
+    a.click()
+    URL.revokeObjectURL(url)
+    message.success('地图布局 JSON 已导出')
+  }
+
+  const visiblePlaced = placedElements.filter((el) => {
+    const types = LAYER_TYPES[activeLayer] ?? []
+    return types.includes(el.type)
+  })
+
   const handleSwitchView = () => {
     const idx = VIEW_OPTIONS.findIndex((v) => v.value === selectedView)
     const next = VIEW_OPTIONS[(idx + 1) % VIEW_OPTIONS.length]
@@ -226,9 +271,11 @@ export default function SceneVisualize() {
             <h1 className="atelier-title">AI 游戏场景可视化搭建</h1>
           </div>
           <p className="atelier-subtitle scene-subtitle">
-            输入文字描述，一键生成游戏场景预览 — 先写描述，选视角与元素，点击生成，预览并导出
+            地砖拼接、物件摆放与多层级场景管理 — 输入描述搭建关卡原型并导出地图 JSON
           </p>
         </header>
+
+        <FeatureCallout feature={sceneTileBuild} />
 
         <div className="scene-studio-row atelier-enter atelier-enter--1">
           <aside className="scene-config-panel atelier-panel">
@@ -315,6 +362,24 @@ export default function SceneVisualize() {
               )}
             </div>
 
+            <div className="scene-field">
+              <span className="scene-field-label">场景层级</span>
+              <FeatureCallout feature={sceneLayerZ} />
+              <Segmented
+                options={SCENE_LAYERS.map((l) => ({ label: l.label, value: l.key }))}
+                value={activeLayer}
+                onChange={setActiveLayer}
+                block
+              />
+            </div>
+
+            <div className="scene-field">
+              <FeatureCallout feature={sceneObjectCollision} />
+              <Checkbox checked={showCollision} onChange={(e) => setShowCollision(e.target.checked)}>
+                显示碰撞 / 交互区域示意
+              </Checkbox>
+            </div>
+
             <div className="scene-step-label">3. 点击生成场景预览</div>
             <Button
               type="primary"
@@ -379,7 +444,7 @@ export default function SceneVisualize() {
 
               {previewState === 'result' && (
                 <div className="scene-result-state atelier-stagger">
-                  {placedElements.map((el) => {
+                  {visiblePlaced.map((el) => {
                     const meta = getElementMeta(el.type)
                     return (
                       <div
@@ -392,6 +457,9 @@ export default function SceneVisualize() {
                           background: `${meta.color}18`,
                         }}
                       >
+                        {showCollision && (
+                          <span className="scene-collision-box" aria-hidden="true" />
+                        )}
                         <IconFont type={meta.icon} className="scene-icon" style={{ color: meta.color }} />
                         <span style={{ color: meta.color, fontWeight: 500 }}>{el.type}</span>
                       </div>
@@ -403,7 +471,9 @@ export default function SceneVisualize() {
 
             {previewState === 'result' && (
               <div className="scene-preview-actions">
+                <FeatureCallout feature={sceneMapExport} />
                 <Button icon={<DownloadOutlined />} onClick={handleDownload}>下载场景图</Button>
+                <Button icon={<DownloadOutlined />} onClick={handleExportMapJson}>导出地图 JSON</Button>
                 <Button icon={<ZoomInOutlined />} onClick={() => setZoomed((z) => !z)}>
                   {zoomed ? '还原' : '放大'}
                 </Button>

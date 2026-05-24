@@ -20,6 +20,14 @@
   max-width: 680px;
 }
 
+.scene-collision-box {
+  position: absolute;
+  inset: -6px;
+  border: 1px dashed rgba(250, 84, 28, 0.75);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
 /* ===== 三栏布局 ===== */
 .scene-studio-row {
   display: grid;
