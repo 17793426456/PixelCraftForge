@@ -35,3 +35,11 @@ Thumbs.db
 *.ear
 hs_err_pid*
 replay_pid*
+
+# Maven
+Backend/target/
+
+# Local secrets & generated files
+**/application-local.yml
+Backend/uploads/
+Backend/docker/mysql_data/
