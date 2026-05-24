@@ -45,6 +45,7 @@ export function createDefaultLayer(id, name) {
       lifetime: 72,
       loop: true,
     },
+    keyframes: [],
     texture: null,
   }
 }
@@ -292,8 +293,8 @@ export function renderFrame(ctx, layers, particlesByLayer, textureMap, opts = {}
 
 export function exportProjectConfig(layers, global) {
   return {
-    format: 'pixelcraftforge-ae-particle-v2',
-    version: '2.0',
+    format: 'pixelcraftforge-ae-particle-v3',
+    version: '3.0',
     canvas: { width: CANVAS_W, height: CANVAS_H },
     global,
     layers: layers.map(({ texture, ...rest }) => ({

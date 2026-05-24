@@ -164,3 +164,82 @@
 .ae-callouts {
   padding: 8px 16px 0;
 }
+
+.ae-timeline {
+  width: 100%;
+  max-width: 800px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(14, 14, 18, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.ae-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 6px;
+}
+
+.ae-timeline-track {
+  position: relative;
+  height: 28px;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+}
+
+.ae-timeline-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(168, 85, 247, 0.25);
+  border: 1px solid rgba(168, 85, 247, 0.6);
+  border-radius: 4px;
+  color: #c4b5fd;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.ae-timeline-marker.active {
+  background: rgba(168, 85, 247, 0.5);
+}
+
+.ae-timeline-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #f472b6;
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+.ae-keyframe-list {
+  padding: 0 12px 8px;
+}
+
+.ae-keyframe-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ae-keyframe-item.active {
+  background: rgba(168, 85, 247, 0.15);
+}
+
+.ae-keyframe-item button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+}

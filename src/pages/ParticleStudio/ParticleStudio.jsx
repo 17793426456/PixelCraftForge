@@ -6,6 +6,7 @@ import {
   DownloadOutlined, ThunderboltOutlined, PlayCircleOutlined, PauseCircleOutlined,
   ReloadOutlined, SaveOutlined, FolderOpenOutlined, PlusOutlined, DeleteOutlined,
   EyeOutlined, EyeInvisibleOutlined, DragOutlined, ZoomInOutlined, ZoomOutOutlined,
+  KeyOutlined, CodeOutlined,
 } from '@ant-design/icons'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
@@ -28,6 +29,13 @@ import {
   drawParticle,
 } from '../../lib/particle/aeParticleEngine.js'
 import { deletePreset, loadSavedPresets, savePreset } from '../../lib/particle/aeParticleStorage.js'
+import {
+  addKeyframe, removeKeyframe, resolveLayersAtTime, ANIM_TRACKS,
+} from '../../lib/particle/aeKeyframe.js'
+import {
+  exportEngineBundle, exportPhaserReadme, exportUnityReadme,
+} from '../../lib/particle/aeEngineExport.js'
+import JSZip from 'jszip'
 import './ParticleStudio.css'
 
 function ParamSlider({ label, min, max, step = 1, value, onChange }) {
@@ -71,6 +79,7 @@ export default function ParticleStudio() {
   const [savedPresets, setSavedPresets] = useState(() => loadSavedPresets())
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [presetName, setPresetName] = useState('')
+  const [selectedKeyframeId, setSelectedKeyframeId] = useState(null)
 
   const layersRef = useRef(layers)
   const globalRef = useRef(global)
@@ -131,8 +140,9 @@ export default function ParticleStudio() {
         } else if (g.loop && elapsedRef.current >= g.duration) {
           elapsedRef.current = 0
         }
+        const resolved = resolveLayersAtTime(layersRef.current, elapsedRef.current)
         const step = simulateStep(
-          layersRef.current,
+          resolved,
           particlesRef.current,
           spawnAccRef.current,
           CANVAS_W,
@@ -143,7 +153,8 @@ export default function ParticleStudio() {
         setElapsed(elapsedRef.current)
       }
 
-      renderFrame(ctx, layersRef.current, particlesRef.current, textureMapRef.current, {
+      const resolvedForRender = resolveLayersAtTime(layersRef.current, elapsedRef.current)
+      renderFrame(ctx, resolvedForRender, particlesRef.current, textureMapRef.current, {
         w: CANVAS_W,
         h: CANVAS_H,
         showGizmo: true,
@@ -270,6 +281,7 @@ export default function ParticleStudio() {
         physics: { ...base.physics, ...l.physics },
         render: { ...base.render, ...l.render },
         animation: { ...base.animation, ...l.animation },
+        keyframes: l.keyframes ?? [],
       }
     }))
     if (project.global) setGlobal(project.global)
@@ -337,6 +349,49 @@ export default function ParticleStudio() {
     setPlaying(true)
     message.success(`已导出 ${frames} 帧 PNG 序列`)
   }
+
+  const seekToTime = (t) => {
+    const clamped = Math.max(0, Math.min(global.duration, t))
+    elapsedRef.current = clamped
+    setElapsed(clamped)
+  }
+
+  const handleAddKeyframe = () => {
+    setLayers((prev) => prev.map((l) => (
+      l.id === activeLayerId
+        ? { ...l, keyframes: addKeyframe(l, elapsed) }
+        : l
+    )))
+    message.success(`已在 ${elapsed.toFixed(2)}s 添加关键帧`)
+  }
+
+  const handleRemoveKeyframe = (kfId) => {
+    setLayers((prev) => prev.map((l) => (
+      l.id === activeLayerId
+        ? { ...l, keyframes: removeKeyframe(l, kfId) }
+        : l
+    )))
+    setSelectedKeyframeId(null)
+  }
+
+  const exportEnginePack = async () => {
+    const bundle = exportEngineBundle(layers, global)
+    const zip = new JSZip()
+    zip.file('ae_particle_effect.json', JSON.stringify(exportProjectConfig(layers, global), null, 2))
+    zip.file('engine_bundle.json', JSON.stringify(bundle, null, 2))
+    zip.file('phaser_particle.json', JSON.stringify(bundle.phaser, null, 2))
+    zip.file('README.txt', bundle.readme)
+    zip.file('unity/README.md', exportUnityReadme())
+    zip.file('phaser/README.md', exportPhaserReadme())
+    bundle.unity.forEach((u, i) => {
+      zip.file(`unity/unity_layer_${i}.json`, JSON.stringify(u, null, 2))
+    })
+    const blob = await zip.generateAsync({ type: 'blob' })
+    triggerDownload(blob, 'particle_engine_pack.zip')
+    message.success('Unity / Phaser 引擎导出包已下载')
+  }
+
+  const activeKeyframes = activeLayer?.keyframes ?? []
 
   const collapseItems = activeLayer ? [
     {
@@ -444,8 +499,39 @@ export default function ParticleStudio() {
       ),
     },
     {
+      key: 'timeline',
+      label: '7. 时间轴关键帧',
+      children: (
+        <>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', padding: '0 12px' }}>
+            可动画属性：{ANIM_TRACKS.map((t) => t.key.split('.').pop()).join('、')}
+          </p>
+          <div className="ae-param-row">
+            <Button block icon={<KeyOutlined />} onClick={handleAddKeyframe}>在当前时间添加关键帧</Button>
+          </div>
+          {activeKeyframes.length > 0 ? (
+            <div className="ae-keyframe-list">
+              {activeKeyframes.map((kf) => (
+                <div
+                  key={kf.id}
+                  className={`ae-keyframe-item ${selectedKeyframeId === kf.id ? 'active' : ''}`}
+                >
+                  <button type="button" onClick={() => { setSelectedKeyframeId(kf.id); seekToTime(kf.time) }}>
+                    {kf.time.toFixed(2)}s
+                  </button>
+                  <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleRemoveKeyframe(kf.id)} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '0 12px' }}>暂无关键帧，调节参数后点击上方按钮添加</p>
+          )}
+        </>
+      ),
+    },
+    {
       key: 'import',
-      label: '6. 素材与方案',
+      label: '8. 素材与方案',
       children: (
         <>
           <div className="ae-param-row">
@@ -492,6 +578,7 @@ export default function ParticleStudio() {
         <Button icon={<DownloadOutlined />} onClick={exportConfig}>导出配置</Button>
         <Button icon={<DownloadOutlined />} onClick={exportPng}>导出 PNG</Button>
         <Button type="primary" icon={<DownloadOutlined />} onClick={() => { void exportSequence() }}>导出序列帧</Button>
+        <Button icon={<CodeOutlined />} onClick={() => { void exportEnginePack() }}>Unity/Phaser</Button>
         <span className="ae-toolbar-spacer" />
         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{elapsed.toFixed(1)}s / {global.duration}s · {global.fps} FPS</span>
       </div>
@@ -528,6 +615,36 @@ export default function ParticleStudio() {
             <span>{Math.round(view.scale * 100)}%</span>
             <Button size="small" icon={<ZoomInOutlined />} onClick={() => setView((v) => ({ ...v, scale: Math.min(2, v.scale + 0.1) }))} />
             <Button size="small" onClick={() => setView({ scale: 1, panX: 0, panY: 0 })}>重置视图</Button>
+          </div>
+
+          <div className="ae-timeline">
+            <div className="ae-timeline-header">
+              <span>时间轴</span>
+              <span>{elapsed.toFixed(2)}s / {global.duration}s</span>
+            </div>
+            <Slider
+              min={0}
+              max={global.duration}
+              step={0.01}
+              value={elapsed}
+              onChange={(v) => { setPlaying(false); seekToTime(v) }}
+              tooltip={{ formatter: (v) => `${v?.toFixed(2)}s` }}
+            />
+            <div className="ae-timeline-track">
+              {activeKeyframes.map((kf) => (
+                <button
+                  key={kf.id}
+                  type="button"
+                  className={`ae-timeline-marker ${selectedKeyframeId === kf.id ? 'active' : ''}`}
+                  style={{ left: `${(kf.time / global.duration) * 100}%` }}
+                  onClick={() => { setSelectedKeyframeId(kf.id); seekToTime(kf.time) }}
+                  title={`${kf.time.toFixed(2)}s`}
+                >
+                  <KeyOutlined />
+                </button>
+              ))}
+              <div className="ae-timeline-playhead" style={{ left: `${(elapsed / global.duration) * 100}%` }} />
+            </div>
           </div>
         </div>
 
