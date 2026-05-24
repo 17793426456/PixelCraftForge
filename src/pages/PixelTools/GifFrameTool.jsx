@@ -21,6 +21,9 @@ import {
   splitImageGrid,
   triggerDownload,
 } from '../../lib/frameRonin/gifUtils.js'
+import animFpsLoop from '../../constants/features/anim-fps-loop.js'
+import animSequenceExport from '../../constants/features/anim-sequence-export.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 
 const { Dragger } = Upload
 const MAX_GIF_SIZE = 50 * 1024 * 1024
@@ -193,6 +196,7 @@ export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
   const [gridRows, setGridRows] = useState(4)
   const [sheetCols, setSheetCols] = useState(6)
   const [frameDelay, setFrameDelay] = useState(100)
+  const [gifLoopCount, setGifLoopCount] = useState(0)
   const [stitchFiles, setStitchFiles] = useState([])
   const [stitchMode, setStitchMode] = useState(0)
   const [activeTab, setActiveTab] = useState('gif2frames')
@@ -496,8 +500,12 @@ export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
             <p>拖拽或选择多张图片</p>
           </Dragger>
           <div style={{ marginTop: 12 }}>
-            <span>帧间隔 {frameDelay} ms</span>
+            <span>帧间隔 {frameDelay} ms（约 {Math.round(1000 / Math.max(frameDelay, 20))} FPS）</span>
             <Slider min={20} max={500} value={frameDelay} onChange={setFrameDelay} />
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <span>循环次数（0 = 无限循环）</span>
+            <InputNumber min={0} max={99} value={gifLoopCount} onChange={(v) => setGifLoopCount(v ?? 0)} style={{ marginLeft: 8 }} />
           </div>
           <div className="pixel-tool-actions">
             <Button type="primary" icon={<DownloadOutlined />} loading={loading} onClick={() => { void handleFramesToGif() }}>
@@ -557,12 +565,14 @@ export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
       ),
     },
   ], [
-    bgColor, bgMode, frameDelay, frameFiles, frameRange, frameStep, gif2framesPanel,
+    bgColor, bgMode, frameDelay, gifLoopCount, frameFiles, frameRange, frameStep, gif2framesPanel,
     gifInfo, gridCols, gridFile, gridRows, loading, sheetCols, stitchFiles, stitchMode,
   ])
 
   return (
     <>
+      <FeatureCallout feature={animSequenceExport} />
+      <FeatureCallout feature={animFpsLoop} />
       <Tabs items={tabs} className="pt-inner-tabs" activeKey={activeTab} onChange={setActiveTab} />
       {previewUrls.length > 0 && activeTab !== 'gif2frames' && (
         <div className="pt-other-preview">
