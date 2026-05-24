@@ -44,8 +44,8 @@ const TOOL_CARDS = [
     key: 'sheet',
     Icon: AppstoreOutlined,
     label: '精灵图',
-    title: '精灵图拆分 / 合并',
-    desc: '按行列或透明间隙拆分，多帧合成图集',
+    title: '精灵图拆分 / 合并 / 裁切排版',
+    desc: '行列拆分、序列帧合成、帧动画裁切与排版',
   },
   {
     key: 'matte',

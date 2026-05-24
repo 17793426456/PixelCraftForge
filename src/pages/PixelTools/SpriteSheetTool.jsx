@@ -9,6 +9,8 @@ import {
   splitImageGrid,
   triggerDownload,
 } from '../../lib/frameRonin/gifUtils.js'
+import imageSpriteCut from '../../constants/features/image-sprite-cut.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 
 const { Dragger } = Upload
 
@@ -97,6 +99,8 @@ export default function SpriteSheetTool() {
   }
 
   return (
+  <>
+    <FeatureCallout feature={imageSpriteCut} />
     <Tabs
       items={[
         {
@@ -145,5 +149,6 @@ export default function SpriteSheetTool() {
         },
       ]}
     />
+  </>
   )
 }
