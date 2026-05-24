@@ -8,6 +8,7 @@ import {
 import IconFont from '../../components/IconFont/IconFont'
 import uiLayoutStyle from '../../constants/features/ui-layout-style.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
+import { applyLocalTransform } from '../../lib/customize/localImageTransform.js'
 import '../ElementGenerate/ElementGenerate.css'
 import './ElementCustomize.css'
 
@@ -35,6 +36,7 @@ export default function ElementCustomize() {
   const [keepStructure, setKeepStructure] = useState(DEFAULTS.keepStructure)
   const [activeAttr, setActiveAttr] = useState(DEFAULTS.activeAttr)
   const [previewVersion, setPreviewVersion] = useState(0)
+  const [processedPreview, setProcessedPreview] = useState(null)
   const [filterStatus, setFilterStatus] = useState('全部素材')
   const [credits] = useState(40)
 
@@ -50,17 +52,30 @@ export default function ElementCustomize() {
     message.success(`成功导入 ${files.length} 个素材`)
   }
 
-  const handleModify = () => {
+  const handleModify = async () => {
     if (!selectedElement || !modifyPrompt.trim()) {
       message.warning('请选择素材并输入修改指令')
       return
     }
-    setPreviewVersion(v => v + 1)
-    setImportedElements(prev => prev.map(el =>
-      el.id === selectedElement.id ? { ...el, modified: true } : el
-    ))
-    setSelectedElement(prev => prev ? { ...prev, modified: true } : prev)
-    message.success('修改已应用')
+    if (!selectedElement.url) {
+      message.warning('当前素材无预览图')
+      return
+    }
+    try {
+      const dataUrl = await applyLocalTransform(selectedElement.url, {
+        activeAttr,
+        prompt: modifyPrompt,
+      })
+      setProcessedPreview(dataUrl)
+      setPreviewVersion((v) => v + 1)
+      setImportedElements((prev) => prev.map((el) =>
+        el.id === selectedElement.id ? { ...el, modified: true, processedUrl: dataUrl } : el,
+      ))
+      setSelectedElement((prev) => (prev ? { ...prev, modified: true, processedUrl: dataUrl } : prev))
+      message.success('已应用本地滤镜预览（可对接 AI API 获得更高质量）')
+    } catch {
+      message.error('预览处理失败')
+    }
   }
 
   const handleReset = () => {
@@ -217,8 +232,12 @@ export default function ElementCustomize() {
           ) : selectedElement ? (
             <div className="cust-preview-wrap">
               <div className="cust-preview-stage">
-                {selectedElement.url ? (
-                  <img src={selectedElement.url} alt="预览" className="cust-preview-image" />
+                {processedPreview || selectedElement.processedUrl || selectedElement.url ? (
+                  <img
+                    src={processedPreview || selectedElement.processedUrl || selectedElement.url}
+                    alt="预览"
+                    className="cust-preview-image"
+                  />
                 ) : (
                   <IconFont type="icon-game" className="cust-preview-placeholder" />
                 )}
