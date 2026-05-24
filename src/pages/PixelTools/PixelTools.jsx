@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   BlockOutlined, BgColorsOutlined, ClearOutlined, FileGifOutlined,
   MoonOutlined, QuestionCircleOutlined, ScissorOutlined, AppstoreOutlined,
@@ -12,6 +13,8 @@ import ImageChromaMatte from './ImageChromaMatte.jsx'
 import ImagePixelateTool from './ImagePixelateTool.jsx'
 import EfficiencyHub from '../../fr-port/components/EfficiencyHub.jsx'
 import SheetProTool from '../../fr-port/components/SheetProTool.jsx'
+import assistEngineExport from '../../constants/features/assist-engine-export.js'
+import { applyFeatureTab } from '../../utils/featureNavigate.js'
 import './PixelTools.css'
 
 const TIP_ITEMS = [
@@ -74,6 +77,7 @@ const PROCESS_NOTES = [
   '所有处理均在浏览器本地完成，文件不会上传至服务器',
   '大文件建议分批处理，避免页面卡顿',
   '导出的 ZIP 文件包含所有 PNG 帧，可直接导入游戏引擎使用',
+  `${assistEngineExport.title}：${assistEngineExport.highlights?.join(' · ')}`,
 ]
 
 const QUICK_TEMPLATES = [
@@ -125,7 +129,12 @@ function statusTone(status) {
 }
 
 export default function PixelTools() {
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('gif')
+
+  useEffect(() => {
+    applyFeatureTab(searchParams, setActiveTab)
+  }, [searchParams])
   const [gifStatus, setGifStatus] = useState(null)
   const templateRef = useRef(null)
 
