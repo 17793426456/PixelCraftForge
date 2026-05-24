@@ -6,6 +6,8 @@ import {
   ThunderboltOutlined, UploadOutlined, ReloadOutlined, DownOutlined, SaveOutlined,
 } from '@ant-design/icons'
 import IconFont from '../../components/IconFont/IconFont'
+import uiLayoutStyle from '../../constants/features/ui-layout-style.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import '../ElementGenerate/ElementGenerate.css'
 import './ElementCustomize.css'
 
@@ -84,6 +86,7 @@ export default function ElementCustomize() {
   return (
     <div className="jm-workspace cust-workspace">
       <aside className="jm-panel">
+        <FeatureCallout feature={uiLayoutStyle} />
         <div className="jm-panel-header">
           <h1 className="jm-panel-title">元素改造</h1>
           <Tooltip title="重置参数">
