@@ -1,0 +1,166 @@
+.ae-particle-studio {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 64px);
+  background: #0a0a0e;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.ae-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 18, 24, 0.95);
+  flex-wrap: wrap;
+}
+
+.ae-toolbar-title {
+  font-weight: 600;
+  margin-right: 12px;
+  color: #c4b5fd;
+}
+
+.ae-toolbar-spacer {
+  flex: 1;
+}
+
+.ae-body {
+  display: grid;
+  grid-template-columns: 200px 1fr 300px;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 1100px) {
+  .ae-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+}
+
+.ae-layers-panel {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+  background: rgba(14, 14, 18, 0.9);
+  overflow-y: auto;
+}
+
+.ae-layers-panel h3 {
+  font-size: 13px;
+  margin: 0 0 10px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ae-layer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ae-layer-item.active {
+  border-color: rgba(168, 85, 247, 0.45);
+  background: rgba(168, 85, 247, 0.12);
+}
+
+.ae-layer-name {
+  flex: 1;
+  font-size: 13px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ae-canvas-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ae-canvas-viewport {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.ae-canvas-viewport canvas {
+  display: block;
+  cursor: crosshair;
+  max-width: 100%;
+}
+
+.ae-canvas-viewport.pan-mode canvas {
+  cursor: grab;
+}
+
+.ae-canvas-viewport.pan-mode:active canvas {
+  cursor: grabbing;
+}
+
+.ae-view-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ae-params-panel {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 14, 18, 0.9);
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+.ae-params-panel .ant-collapse {
+  background: transparent;
+  border: none;
+}
+
+.ae-params-panel .ant-collapse-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.ae-params-panel .ant-collapse-header {
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-size: 13px !important;
+  padding: 10px 12px !important;
+}
+
+.ae-param-row {
+  padding: 4px 12px 10px;
+}
+
+.ae-param-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 4px;
+}
+
+.ae-presets-row {
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ae-callouts {
+  padding: 8px 16px 0;
+}

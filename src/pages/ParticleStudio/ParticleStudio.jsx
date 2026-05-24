@@ -1,177 +1,229 @@
-import { useEffect, useRef, useState } from 'react'
-import { Button, Slider, Space, Select, message, Upload } from 'antd'
-import { DownloadOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  Button, Slider, Select, message, Upload, Collapse, Input, Space, ColorPicker, Switch, Modal,
+} from 'antd'
+import {
+  DownloadOutlined, ThunderboltOutlined, PlayCircleOutlined, PauseCircleOutlined,
+  ReloadOutlined, SaveOutlined, FolderOpenOutlined, PlusOutlined, DeleteOutlined,
+  EyeOutlined, EyeInvisibleOutlined, DragOutlined, ZoomInOutlined, ZoomOutOutlined,
+} from '@ant-design/icons'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
 import vfxPresets from '../../constants/features/vfx-presets.js'
 import vfxPreviewTiming from '../../constants/features/vfx-preview-timing.js'
 import { triggerDownload, zipBlobs } from '../../lib/assets/imageExport.js'
+import {
+  BUILTIN_PRESETS,
+  BLEND_MODES,
+  CANVAS_H,
+  CANVAS_W,
+  EMITTER_SHAPES,
+  PARTICLE_SHAPES,
+  createDefaultLayer,
+  exportProjectConfig,
+  renderFrame,
+  simulateStep,
+  spawnParticle,
+  updateParticle,
+  drawParticle,
+} from '../../lib/particle/aeParticleEngine.js'
+import { deletePreset, loadSavedPresets, savePreset } from '../../lib/particle/aeParticleStorage.js'
+import './ParticleStudio.css'
 
-const PRESETS = {
-  sparkle: { count: 80, speed: 2, gravity: 0.05, life: 60, color: '#a855f7', size: 4 },
-  rain: { count: 120, speed: 6, gravity: 0.2, life: 80, color: '#60a5fa', size: 2 },
-  explosion: { count: 100, speed: 5, gravity: 0.08, life: 45, color: '#f59e0b', size: 6 },
-  snow: { count: 90, speed: 1.5, gravity: 0.02, life: 120, color: '#f8fafc', size: 3 },
+function ParamSlider({ label, min, max, step = 1, value, onChange }) {
+  return (
+    <div className="ae-param-row">
+      <div className="ae-param-label"><span>{label}</span><span>{typeof value === 'number' ? (step < 1 ? value.toFixed(2) : value) : value}</span></div>
+      <Slider min={min} max={max} step={step} value={value} onChange={onChange} />
+    </div>
+  )
 }
 
-function spawnParticle(w, h, cfg, sprite) {
-  return {
-    x: Math.random() * w,
-    y: Math.random() * h * 0.3,
-    vx: (Math.random() - 0.5) * cfg.speed,
-    vy: Math.random() * cfg.speed,
-    life: cfg.life + Math.random() * 20,
-    maxLife: cfg.life,
-    size: cfg.size * (0.5 + Math.random()),
-    color: cfg.color,
-    sprite,
+function deepMergeLayer(layer, patch) {
+  const next = { ...layer }
+  for (const key of Object.keys(patch)) {
+    if (patch[key] && typeof patch[key] === 'object' && !Array.isArray(patch[key])) {
+      next[key] = { ...layer[key], ...patch[key] }
+    } else {
+      next[key] = patch[key]
+    }
   }
+  return next
 }
 
 export default function ParticleStudio() {
   const canvasRef = useRef(null)
   const rafRef = useRef(null)
-  const particlesRef = useRef([])
-  const cfgRef = useRef(PRESETS.sparkle)
-  const spriteRef = useRef(null)
-  const playStartRef = useRef(null)
-  const [preset, setPreset] = useState('sparkle')
-  const [count, setCount] = useState(80)
-  const [speed, setSpeed] = useState(2)
-  const [duration, setDuration] = useState(3)
+  const particlesRef = useRef({})
+  const spawnAccRef = useRef({})
+  const textureMapRef = useRef({})
+  const playingRef = useRef(true)
+  const elapsedRef = useRef(0)
+  const dragModeRef = useRef(null)
+
+  const [layers, setLayers] = useState(() => [createDefaultLayer('layer-1', '粒子层 1')])
+  const [activeLayerId, setActiveLayerId] = useState('layer-1')
   const [playing, setPlaying] = useState(true)
   const [elapsed, setElapsed] = useState(0)
+  const [global, setGlobal] = useState({ fps: 60, loop: true, duration: 5 })
+  const [view, setView] = useState({ scale: 1, panX: 0, panY: 0 })
+  const [panMode, setPanMode] = useState(false)
+  const [savedPresets, setSavedPresets] = useState(() => loadSavedPresets())
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [presetName, setPresetName] = useState('')
 
-  useEffect(() => {
-    cfgRef.current = { ...PRESETS[preset], count, speed }
-  }, [preset, count, speed])
+  const layersRef = useRef(layers)
+  const globalRef = useRef(global)
+  const viewRef = useRef(view)
+  const activeLayerIdRef = useRef(activeLayerId)
 
-  useEffect(() => {
-    if (playing) playStartRef.current = Date.now()
-    else playStartRef.current = null
-  }, [playing])
+  useEffect(() => { layersRef.current = layers }, [layers])
+  useEffect(() => { globalRef.current = global }, [global])
+  useEffect(() => { viewRef.current = view }, [view])
+  useEffect(() => { activeLayerIdRef.current = activeLayerId }, [activeLayerId])
+  useEffect(() => { playingRef.current = playing }, [playing])
+
+  const activeLayer = layers.find((l) => l.id === activeLayerId) ?? layers[0]
+
+  const updateActiveLayer = useCallback((patch) => {
+    setLayers((prev) => prev.map((l) => (l.id === activeLayerId ? deepMergeLayer(l, patch) : l)))
+  }, [activeLayerId])
+
+  const resetSimulation = useCallback(() => {
+    particlesRef.current = {}
+    spawnAccRef.current = {}
+    elapsedRef.current = 0
+    setElapsed(0)
+  }, [])
+
+  const canvasToWorld = useCallback((clientX, clientY) => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    const v = viewRef.current
+    const sx = (clientX - rect.left) / rect.width * CANVAS_W
+    const sy = (clientY - rect.top) / rect.height * CANVAS_H
+    return {
+      x: (sx - v.panX) / v.scale,
+      y: (sy - v.panY) / v.scale,
+    }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return undefined
-    const w = 640
-    const h = 360
-    canvas.width = w
-    canvas.height = h
-    const cfg = cfgRef.current
-    particlesRef.current = Array.from({ length: cfg.count }, () => spawnParticle(w, h, cfg, spriteRef.current))
+    canvas.width = CANVAS_W
+    canvas.height = CANVAS_H
+    let lastFrame = performance.now()
 
-    const tick = () => {
-      const c = cfgRef.current
+    const tick = (now) => {
       const ctx = canvas.getContext('2d')
-      ctx.fillStyle = 'rgba(15,15,18,0.25)'
-      ctx.fillRect(0, 0, w, h)
+      const g = globalRef.current
+      const frameMs = 1000 / g.fps
+      const delta = now - lastFrame
 
-      if (playStartRef.current) {
-        const sec = (Date.now() - playStartRef.current) / 1000
-        setElapsed(sec)
-        if (sec >= duration) {
+      if (playingRef.current && delta >= frameMs * 0.85) {
+        lastFrame = now
+        elapsedRef.current += delta / 1000
+        if (!g.loop && elapsedRef.current >= g.duration) {
+          playingRef.current = false
           setPlaying(false)
-          return
+        } else if (g.loop && elapsedRef.current >= g.duration) {
+          elapsedRef.current = 0
         }
+        const step = simulateStep(
+          layersRef.current,
+          particlesRef.current,
+          spawnAccRef.current,
+          CANVAS_W,
+          CANVAS_H,
+        )
+        particlesRef.current = step.particlesByLayer
+        spawnAccRef.current = step.spawnAcc
+        setElapsed(elapsedRef.current)
       }
 
-      const next = []
-      for (const p of particlesRef.current) {
-        p.x += p.vx
-        p.y += p.vy
-        p.vy += c.gravity
-        p.life -= 1
-        const alpha = Math.max(0, p.life / p.maxLife)
-        ctx.globalAlpha = alpha
-        if (p.sprite) {
-          const s = p.size * 2
-          ctx.drawImage(p.sprite, p.x - s / 2, p.y - s / 2, s, s)
-        } else {
-          ctx.fillStyle = p.color
-          ctx.beginPath()
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-          ctx.fill()
-        }
-        if (p.life > 0 && p.x >= 0 && p.x <= w && p.y <= h) {
-          next.push(p)
-        } else if (playing) {
-          next.push(spawnParticle(w, h, c, spriteRef.current))
-        }
-      }
-      particlesRef.current = next
-      ctx.globalAlpha = 1
-      if (playing) rafRef.current = requestAnimationFrame(tick)
-    }
-
-    if (playing) rafRef.current = requestAnimationFrame(tick)
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [count, speed, preset, playing, duration])
-
-  const exportPreset = () => {
-    const c = cfgRef.current
-    const data = {
-      preset,
-      count,
-      speed,
-      duration,
-      elapsed: Math.round(elapsed * 10) / 10,
-      gravity: c.gravity,
-      color: c.color,
-      hasSprite: !!spriteRef.current,
-      engine: 'pixelcraftforge-particle-v1',
-      phaser: {
-        x: 320,
-        y: 180,
-        blendMode: 'ADD',
-        frequency: Math.max(50, 500 - count * 2),
-        lifespan: duration * 1000,
-      },
-    }
-    triggerDownload(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), `particle_${preset}.json`)
-    message.success('粒子预设 JSON 已导出（含 Phaser 参考字段）')
-  }
-
-  const exportFrame = () => {
-    canvasRef.current?.toBlob((blob) => {
-      if (blob) triggerDownload(blob, `particle_${preset}.png`)
-    })
-  }
-
-  const exportFrameSequence = async () => {
-    setPlaying(false)
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const frames = Math.min(12, Math.max(4, Math.floor(duration * 4)))
-    const entries = []
-    const w = canvas.width
-    const h = canvas.height
-    const cfg = cfgRef.current
-    let simParticles = Array.from({ length: cfg.count }, () => spawnParticle(w, h, cfg, spriteRef.current))
-
-    for (let i = 0; i < frames; i++) {
-      const snap = document.createElement('canvas')
-      snap.width = w
-      snap.height = h
-      const ctx = snap.getContext('2d')
-      ctx.fillStyle = '#0f0f12'
-      ctx.fillRect(0, 0, w, h)
-      simParticles = simParticles.map((p) => {
-        const next = { ...p, x: p.x + p.vx, y: p.y + p.vy, vy: p.vy + cfg.gravity }
-        ctx.fillStyle = next.color
-        ctx.beginPath()
-        ctx.arc(next.x, next.y, next.size, 0, Math.PI * 2)
-        ctx.fill()
-        return next
+      renderFrame(ctx, layersRef.current, particlesRef.current, textureMapRef.current, {
+        w: CANVAS_W,
+        h: CANVAS_H,
+        showGizmo: true,
+        activeLayerId: activeLayerIdRef.current,
+        viewScale: viewRef.current.scale,
+        viewPanX: viewRef.current.panX,
+        viewPanY: viewRef.current.panY,
+        trail: true,
       })
-      const blob = await new Promise((r) => snap.toBlob(r, 'image/png'))
-      entries.push({ name: `particle_${String(i + 1).padStart(2, '0')}.png`, blob })
+
+      rafRef.current = requestAnimationFrame(tick)
     }
-    await zipBlobs(entries, `particle_${preset}_frames.zip`)
-    message.success(`已导出 ${frames} 帧序列 ZIP`)
+
+    rafRef.current = requestAnimationFrame(tick)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [])
+
+  const handleCanvasPointerDown = (e) => {
+    const world = canvasToWorld(e.clientX, e.clientY)
+    if (panMode) {
+      dragModeRef.current = { type: 'pan', startX: e.clientX, startY: e.clientY, panX: view.panX, panY: view.panY }
+      return
+    }
+    const layer = layersRef.current.find((l) => l.id === activeLayerIdRef.current)
+    if (layer) {
+      const dx = world.x - layer.emitter.x
+      const dy = world.y - layer.emitter.y
+      if (Math.hypot(dx, dy) < 20) {
+        dragModeRef.current = { type: 'emitter', layerId: layer.id }
+        return
+      }
+    }
+    dragModeRef.current = { type: 'pan', startX: e.clientX, startY: e.clientY, panX: view.panX, panY: view.panY }
   }
 
-  const loadSprite = async (file) => {
+  const handleCanvasPointerMove = (e) => {
+    const drag = dragModeRef.current
+    if (!drag) return
+    if (drag.type === 'pan') {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const rect = canvas.getBoundingClientRect()
+      const scaleX = CANVAS_W / rect.width
+      const scaleY = CANVAS_H / rect.height
+      setView({
+        ...viewRef.current,
+        panX: drag.panX + (e.clientX - drag.startX) * scaleX,
+        panY: drag.panY + (e.clientY - drag.startY) * scaleY,
+      })
+    } else if (drag.type === 'emitter') {
+      const world = canvasToWorld(e.clientX, e.clientY)
+      setLayers((prev) => prev.map((l) => (
+        l.id === drag.layerId
+          ? deepMergeLayer(l, { emitter: { x: Math.round(world.x), y: Math.round(world.y) } })
+          : l
+      )))
+    }
+  }
+
+  const handleCanvasPointerUp = () => {
+    dragModeRef.current = null
+  }
+
+  const addLayer = () => {
+    const id = `layer-${Date.now()}`
+    setLayers((prev) => [...prev, createDefaultLayer(id, `粒子层 ${prev.length + 1}`)])
+    setActiveLayerId(id)
+  }
+
+  const removeLayer = (id) => {
+    if (layers.length <= 1) {
+      message.warning('至少保留一个粒子层')
+      return
+    }
+    setLayers((prev) => prev.filter((l) => l.id !== id))
+    delete particlesRef.current[id]
+    if (activeLayerId === id) setActiveLayerId(layers.find((l) => l.id !== id)?.id ?? 'layer-1')
+  }
+
+  const loadTexture = async (file) => {
     const url = URL.createObjectURL(file)
     const img = await new Promise((res, rej) => {
       const el = new Image()
@@ -179,53 +231,314 @@ export default function ParticleStudio() {
       el.onerror = rej
       el.src = url
     })
-    URL.revokeObjectURL(url)
-    spriteRef.current = img
-    message.success('粒子精灵图已加载')
-    setPlaying(true)
-    setElapsed(0)
+    textureMapRef.current = { ...textureMapRef.current, [activeLayerId]: img }
+    updateActiveLayer({ appearance: { shape: 'texture' }, texture: file.name })
+    message.success('粒子贴图已载入当前层')
   }
 
+  const applyBuiltinPreset = (key) => {
+    const preset = BUILTIN_PRESETS[key]
+    if (!preset) return
+    updateActiveLayer(preset.layer)
+    resetSimulation()
+    message.success(`已应用预设：${preset.name}`)
+  }
+
+  const handleSavePreset = () => {
+    if (!presetName.trim()) {
+      message.warning('请输入方案名称')
+      return
+    }
+    const project = exportProjectConfig(layers, global)
+    savePreset(presetName.trim(), project)
+    setSavedPresets(loadSavedPresets())
+    setSaveModalOpen(false)
+    setPresetName('')
+    message.success('特效方案已保存')
+  }
+
+  const handleLoadPreset = (entry) => {
+    const { project } = entry
+    if (!project?.layers?.length) return
+    setLayers(project.layers.map((l) => {
+      const base = createDefaultLayer(l.id, l.name || '粒子层')
+      return {
+        ...base,
+        ...l,
+        emitter: { ...base.emitter, ...l.emitter },
+        appearance: { ...base.appearance, ...l.appearance },
+        physics: { ...base.physics, ...l.physics },
+        render: { ...base.render, ...l.render },
+        animation: { ...base.animation, ...l.animation },
+      }
+    }))
+    if (project.global) setGlobal(project.global)
+    setActiveLayerId(project.layers[0].id)
+    resetSimulation()
+    setPlaying(true)
+    message.success(`已加载：${entry.name}`)
+  }
+
+  const exportConfig = () => {
+    const data = exportProjectConfig(layers, global)
+    triggerDownload(
+      new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+      'ae_particle_effect.json',
+    )
+    message.success('特效配置文件已导出')
+  }
+
+  const exportPng = () => {
+    canvasRef.current?.toBlob((blob) => {
+      if (blob) triggerDownload(blob, 'ae_particle_frame.png')
+    })
+  }
+
+  const exportSequence = async () => {
+    setPlaying(false)
+    const frames = Math.min(120, Math.max(8, Math.floor(global.duration * global.fps)))
+    const entries = []
+    const simParticles = {}
+    const simAcc = {}
+    const simLayers = layers.map((l) => ({ ...l }))
+
+    for (let f = 0; f < frames; f++) {
+      const snap = document.createElement('canvas')
+      snap.width = CANVAS_W
+      snap.height = CANVAS_H
+      const ctx = snap.getContext('2d')
+      ctx.fillStyle = '#0c0c10'
+      ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+
+      for (const layer of simLayers) {
+        if (!layer.visible) continue
+        simAcc[layer.id] = (simAcc[layer.id] ?? 0) + layer.emitter.rate / global.fps
+        let list = simParticles[layer.id] ?? []
+        while (simAcc[layer.id] >= 1) {
+          list = [...list, spawnParticle(layer)]
+          simAcc[layer.id] -= 1
+        }
+        list = list.map((p) => {
+          const copy = { ...p }
+          updateParticle(copy, layer)
+          return copy
+        }).filter((p) => p.life > 0)
+        simParticles[layer.id] = list
+        const tex = textureMapRef.current[layer.id]
+        for (const p of list) drawParticle(ctx, p, layer, tex)
+      }
+
+      const blob = await new Promise((r) => snap.toBlob(r, 'image/png'))
+      entries.push({ name: `frame_${String(f + 1).padStart(4, '0')}.png`, blob })
+    }
+
+    await zipBlobs(entries, `ae_particle_${frames}f.zip`)
+    resetSimulation()
+    setPlaying(true)
+    message.success(`已导出 ${frames} 帧 PNG 序列`)
+  }
+
+  const collapseItems = activeLayer ? [
+    {
+      key: 'emitter',
+      label: '1. 发射器基础设置',
+      children: (
+        <>
+          <ParamSlider label="发射 X" min={0} max={CANVAS_W} value={activeLayer.emitter.x} onChange={(v) => updateActiveLayer({ emitter: { x: v } })} />
+          <ParamSlider label="发射 Y" min={0} max={CANVAS_H} value={activeLayer.emitter.y} onChange={(v) => updateActiveLayer({ emitter: { y: v } })} />
+          <ParamSlider label="发射速率 (粒子/秒)" min={1} max={120} value={activeLayer.emitter.rate} onChange={(v) => updateActiveLayer({ emitter: { rate: v } })} />
+          <div className="ae-param-row">
+            <div className="ae-param-label">发射形态</div>
+            <Select
+              value={activeLayer.emitter.shape}
+              onChange={(v) => updateActiveLayer({ emitter: { shape: v } })}
+              options={EMITTER_SHAPES.map((s) => ({ value: s, label: s === 'point' ? '点状' : s === 'circle' ? '圆形' : '扇形' }))}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <ParamSlider label="发射角度 (°)" min={-180} max={180} value={activeLayer.emitter.angle} onChange={(v) => updateActiveLayer({ emitter: { angle: v } })} />
+          <ParamSlider label="扇形扩散 (°)" min={0} max={360} value={activeLayer.emitter.spread} onChange={(v) => updateActiveLayer({ emitter: { spread: v } })} />
+          <ParamSlider label="发射半径" min={4} max={200} value={activeLayer.emitter.radius} onChange={(v) => updateActiveLayer({ emitter: { radius: v } })} />
+        </>
+      ),
+    },
+    {
+      key: 'appearance',
+      label: '2. 粒子外观属性',
+      children: (
+        <>
+          <ParamSlider label="初始尺寸" min={0.5} max={24} step={0.5} value={activeLayer.appearance.sizeStart} onChange={(v) => updateActiveLayer({ appearance: { sizeStart: v } })} />
+          <ParamSlider label="消亡尺寸" min={0} max={24} step={0.5} value={activeLayer.appearance.sizeEnd} onChange={(v) => updateActiveLayer({ appearance: { sizeEnd: v } })} />
+          <div className="ae-param-row">
+            <div className="ae-param-label">起始色 / 结束色</div>
+            <Space>
+              <ColorPicker value={activeLayer.appearance.colorStart} onChange={(c) => updateActiveLayer({ appearance: { colorStart: c.toHexString() } })} />
+              <ColorPicker value={activeLayer.appearance.colorEnd} onChange={(c) => updateActiveLayer({ appearance: { colorEnd: c.toHexString() } })} />
+            </Space>
+          </div>
+          <ParamSlider label="初始透明度" min={0} max={1} step={0.05} value={activeLayer.appearance.opacityStart} onChange={(v) => updateActiveLayer({ appearance: { opacityStart: v } })} />
+          <ParamSlider label="结束透明度" min={0} max={1} step={0.05} value={activeLayer.appearance.opacityEnd} onChange={(v) => updateActiveLayer({ appearance: { opacityEnd: v } })} />
+          <div className="ae-param-row">
+            <div className="ae-param-label">粒子样式</div>
+            <Select
+              value={activeLayer.appearance.shape}
+              onChange={(v) => updateActiveLayer({ appearance: { shape: v } })}
+              options={PARTICLE_SHAPES.map((s) => ({ value: s, label: s === 'circle' ? '圆形' : s === 'star' ? '星形' : '纹理贴图' }))}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'physics',
+      label: '3. 物理运动参数',
+      children: (
+        <>
+          <ParamSlider label="飞行速度" min={0.5} max={15} step={0.1} value={activeLayer.physics.speed} onChange={(v) => updateActiveLayer({ physics: { speed: v } })} />
+          <ParamSlider label="重力 (负值上浮)" min={-0.3} max={0.3} step={0.01} value={activeLayer.physics.gravity} onChange={(v) => updateActiveLayer({ physics: { gravity: v } })} />
+          <ParamSlider label="空气阻力" min={0} max={0.15} step={0.005} value={activeLayer.physics.drag} onChange={(v) => updateActiveLayer({ physics: { drag: v } })} />
+          <ParamSlider label="湍流扰动" min={0} max={2} step={0.05} value={activeLayer.physics.turbulence} onChange={(v) => updateActiveLayer({ physics: { turbulence: v } })} />
+        </>
+      ),
+    },
+    {
+      key: 'render',
+      label: '4. 渲染特效模式',
+      children: (
+        <>
+          <div className="ae-param-row">
+            <div className="ae-param-label">混合模式</div>
+            <Select
+              value={activeLayer.render.blendMode}
+              onChange={(v) => updateActiveLayer({ render: { blendMode: v } })}
+              options={BLEND_MODES.map((m) => ({ value: m, label: m === 'add' ? '光亮叠加 (Add)' : '常规叠加' }))}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div className="ae-param-row">
+            <div className="ae-param-label">运动模糊</div>
+            <Switch checked={activeLayer.render.motionBlur} onChange={(v) => updateActiveLayer({ render: { motionBlur: v } })} />
+          </div>
+          <ParamSlider label="光晕强度" min={0} max={1} step={0.05} value={activeLayer.render.glow} onChange={(v) => updateActiveLayer({ render: { glow: v } })} />
+        </>
+      ),
+    },
+    {
+      key: 'animation',
+      label: '5. 动画周期管控',
+      children: (
+        <>
+          <ParamSlider label="生命周期 (帧)" min={12} max={240} value={activeLayer.animation.lifetime} onChange={(v) => updateActiveLayer({ animation: { lifetime: v } })} />
+          <div className="ae-param-row">
+            <div className="ae-param-label">层内持续发射</div>
+            <Switch checked={activeLayer.animation.loop} onChange={(v) => updateActiveLayer({ animation: { loop: v } })} />
+          </div>
+          <ParamSlider label="全局帧率 FPS" min={12} max={60} value={global.fps} onChange={(v) => setGlobal((g) => ({ ...g, fps: v }))} />
+          <ParamSlider label="预览时长 (秒)" min={1} max={15} value={global.duration} onChange={(v) => setGlobal((g) => ({ ...g, duration: v }))} />
+          <div className="ae-param-row">
+            <div className="ae-param-label">循环播放</div>
+            <Switch checked={global.loop} onChange={(v) => setGlobal((g) => ({ ...g, loop: v }))} />
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'import',
+      label: '6. 素材与方案',
+      children: (
+        <>
+          <div className="ae-param-row">
+            <Upload showUploadList={false} beforeUpload={(f) => { void loadTexture(f); return false }} accept="image/*">
+              <Button block>导入粒子贴图</Button>
+            </Upload>
+          </div>
+          <div className="ae-presets-row">
+            {Object.entries(BUILTIN_PRESETS).map(([k, p]) => (
+              <Button key={k} size="small" onClick={() => applyBuiltinPreset(k)}>{p.name}</Button>
+            ))}
+          </div>
+          {savedPresets.length > 0 && (
+            <div className="ae-param-row">
+              <div className="ae-param-label">已保存方案</div>
+              {savedPresets.map((p) => (
+                <Space key={p.id} style={{ marginBottom: 6 }}>
+                  <Button size="small" icon={<FolderOpenOutlined />} onClick={() => handleLoadPreset(p)}>{p.name}</Button>
+                  <Button size="small" danger icon={<DeleteOutlined />} onClick={() => { deletePreset(p.id); setSavedPresets(loadSavedPresets()) }} />
+                </Space>
+              ))}
+            </div>
+          )}
+        </>
+      ),
+    },
+  ] : []
+
   return (
-    <div className="vf-page atelier-page-wrap">
-      <div className="atelier-page atelier-page--wide">
-        <header className="atelier-hero">
-          <h1 className="atelier-title"><ThunderboltOutlined /> 特效粒子工作室</h1>
-          <p className="atelier-subtitle">预设调节、时长控制、精灵图粒子、帧序列导出</p>
-        </header>
+    <div className="ae-particle-studio vf-page">
+      <div className="ae-callouts">
         <FeatureCallout feature={vfxParticleParams} />
         <FeatureCallout feature={vfxPresets} />
         <FeatureCallout feature={vfxPreviewTiming} />
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Select
-            value={preset}
-            onChange={(v) => {
-              setPreset(v)
-              setCount(PRESETS[v].count)
-              setSpeed(PRESETS[v].speed)
-              setElapsed(0)
-              setPlaying(true)
-            }}
-            options={Object.keys(PRESETS).map((k) => ({ value: k, label: k }))}
-          />
-          <span>数量 {count}</span>
-          <Slider min={20} max={200} value={count} onChange={setCount} style={{ width: 120 }} />
-          <span>速度 {speed}</span>
-          <Slider min={1} max={10} value={speed} onChange={setSpeed} style={{ width: 120 }} />
-          <span>时长 {duration}s</span>
-          <Slider min={1} max={10} value={duration} onChange={setDuration} style={{ width: 100 }} />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{playing ? `播放 ${elapsed.toFixed(1)}s` : '已暂停'}</span>
-          <Upload showUploadList={false} beforeUpload={(f) => { void loadSprite(f); return false }} accept="image/*">
-            <Button>上传粒子精灵</Button>
-          </Upload>
-          <Button onClick={() => { setElapsed(0); setPlaying((p) => !p) }}>{playing ? '暂停' : '播放'}</Button>
-          <Button onClick={() => { setElapsed(0); setPlaying(true) }}>重播</Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={exportPreset}>导出 JSON</Button>
-          <Button icon={<DownloadOutlined />} onClick={exportFrame}>导出 PNG</Button>
-          <Button icon={<DownloadOutlined />} onClick={() => { void exportFrameSequence() }}>导出帧序列</Button>
-        </Space>
-        <canvas ref={canvasRef} style={{ width: '100%', maxWidth: 640, borderRadius: 8, background: '#0f0f12' }} />
       </div>
+
+      <div className="ae-toolbar">
+        <span className="ae-toolbar-title"><ThunderboltOutlined /> AE 粒子特效制作器</span>
+        <Button icon={playing ? <PauseCircleOutlined /> : <PlayCircleOutlined />} onClick={() => setPlaying((p) => !p)}>
+          {playing ? '暂停' : '播放'}
+        </Button>
+        <Button icon={<ReloadOutlined />} onClick={() => { resetSimulation(); setPlaying(true) }}>重置</Button>
+        <Button icon={<SaveOutlined />} onClick={() => setSaveModalOpen(true)}>保存方案</Button>
+        <Button icon={<DownloadOutlined />} onClick={exportConfig}>导出配置</Button>
+        <Button icon={<DownloadOutlined />} onClick={exportPng}>导出 PNG</Button>
+        <Button type="primary" icon={<DownloadOutlined />} onClick={() => { void exportSequence() }}>导出序列帧</Button>
+        <span className="ae-toolbar-spacer" />
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{elapsed.toFixed(1)}s / {global.duration}s · {global.fps} FPS</span>
+      </div>
+
+      <div className="ae-body">
+        <aside className="ae-layers-panel">
+          <h3>图层管理</h3>
+          <Button block icon={<PlusOutlined />} size="small" onClick={addLayer} style={{ marginBottom: 10 }}>添加粒子层</Button>
+          {layers.map((l) => (
+            <div key={l.id} className={`ae-layer-item ${l.id === activeLayerId ? 'active' : ''}`}>
+              <button type="button" onClick={() => setLayers((prev) => prev.map((x) => (x.id === l.id ? { ...x, visible: !x.visible } : x)))}>
+                {l.visible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+              </button>
+              <button type="button" className="ae-layer-name" onClick={() => setActiveLayerId(l.id)}>{l.name}</button>
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => removeLayer(l.id)} />
+            </div>
+          ))}
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 12 }}>拖拽画布上的紫色圆点可移动发射器</p>
+        </aside>
+
+        <div className="ae-canvas-wrap">
+          <div className={`ae-canvas-viewport ${panMode ? 'pan-mode' : ''}`}>
+            <canvas
+              ref={canvasRef}
+              onMouseDown={handleCanvasPointerDown}
+              onMouseMove={handleCanvasPointerMove}
+              onMouseUp={handleCanvasPointerUp}
+              onMouseLeave={handleCanvasPointerUp}
+            />
+          </div>
+          <div className="ae-view-controls">
+            <Button size="small" icon={<DragOutlined />} type={panMode ? 'primary' : 'default'} onClick={() => setPanMode((p) => !p)}>平移视图</Button>
+            <Button size="small" icon={<ZoomOutOutlined />} onClick={() => setView((v) => ({ ...v, scale: Math.max(0.5, v.scale - 0.1) }))} />
+            <span>{Math.round(view.scale * 100)}%</span>
+            <Button size="small" icon={<ZoomInOutlined />} onClick={() => setView((v) => ({ ...v, scale: Math.min(2, v.scale + 0.1) }))} />
+            <Button size="small" onClick={() => setView({ scale: 1, panX: 0, panY: 0 })}>重置视图</Button>
+          </div>
+        </div>
+
+        <aside className="ae-params-panel">
+          <Collapse defaultActiveKey={['emitter', 'appearance', 'physics', 'render', 'animation']} items={collapseItems} />
+        </aside>
+      </div>
+
+      <Modal title="保存特效方案" open={saveModalOpen} onOk={handleSavePreset} onCancel={() => setSaveModalOpen(false)}>
+        <Input placeholder="方案名称，如：火球术尾迹" value={presetName} onChange={(e) => setPresetName(e.target.value)} />
+      </Modal>
     </div>
   )
 }
