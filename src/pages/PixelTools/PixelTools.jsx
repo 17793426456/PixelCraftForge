@@ -11,6 +11,7 @@ import SpriteSheetTool from './SpriteSheetTool.jsx'
 import GeminiWatermark from './GeminiWatermark.jsx'
 import ImageChromaMatte from './ImageChromaMatte.jsx'
 import ImagePixelateTool from './ImagePixelateTool.jsx'
+import ImageTransformTool from './ImageTransformTool.jsx'
 import EfficiencyHub from '../../fr-port/components/EfficiencyHub.jsx'
 import SheetProTool from '../../fr-port/components/SheetProTool.jsx'
 import assistEngineExport from '../../constants/features/assist-engine-export.js'
@@ -164,6 +165,7 @@ export default function PixelTools() {
     { key: 'sheet', label: '精灵图工具', children: <SpriteSheetTool /> },
     { key: 'efficiency', label: '效率工具', children: <EfficiencyHub /> },
     { key: 'sheetPro', label: '精灵表 Pro', children: <SheetProTool /> },
+    { key: 'transform', label: '贴图变换', children: <ImageTransformTool /> },
     { key: 'pixelate', label: '图片像素化', children: <ImagePixelateTool /> },
     { key: 'watermark', label: 'Gemini 去水印', children: <GeminiWatermark /> },
     { key: 'matte', label: '色度键抠图', children: <ImageChromaMatte /> },

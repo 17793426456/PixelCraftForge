@@ -125,13 +125,16 @@ export async function previewGifFrames(file, maxFrames = 12) {
   return frames.slice(0, maxFrames)
 }
 
-export async function buildGifFromCanvases(canvases, delayMs = 100) {
+export async function buildGifFromCanvases(canvases, delayMs = 100, loopCount = 0) {
   if (!canvases.length) throw new Error('没有可用帧')
-  const width = canvases[0].width
-  const height = canvases[0].height
+  let frames = canvases
+  if (loopCount > 0) {
+    frames = []
+    for (let i = 0; i < loopCount; i += 1) frames.push(...canvases)
+  }
   const gif = GIFEncoder()
 
-  for (const canvas of canvases) {
+  for (const canvas of frames) {
     const ctx = canvas.getContext('2d')
     const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const palette = quantize(data, 256)

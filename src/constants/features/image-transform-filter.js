@@ -5,6 +5,6 @@ export default {
   summary: '自定义缩放、像素化预设与色度键参数，批量统一尺寸与切片。',
   status: 'ready',
   route: '/pixel-tools',
-  tab: 'efficiency',
+  tab: 'transform',
   highlights: ['目标尺寸缩放', '像素化滤镜', '批量统一格尺寸'],
 }

@@ -311,7 +311,7 @@ export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
         c.getContext('2d').drawImage(img, 0, 0)
         return c
       })
-      const blob = await buildGifFromCanvases(canvases, frameDelay)
+      const blob = await buildGifFromCanvases(canvases, frameDelay, gifLoopCount)
       triggerDownload(blob, 'frames.gif')
       message.success('GIF 已生成')
     } catch (error) {
