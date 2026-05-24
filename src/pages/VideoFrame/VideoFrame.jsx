@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Button, Progress, message, Slider, Checkbox, Space, Dropdown, InputNumber, Select, Segmented, Input } from 'antd'
+import { Button, Progress, message, Slider, Checkbox, Space, Dropdown, InputNumber, Select, Segmented, Input, Tooltip } from 'antd'
 import {
   ScissorOutlined, CheckCircleOutlined, ReloadOutlined, EyeOutlined,
   DownloadOutlined, SettingOutlined, LoadingOutlined, CloudUploadOutlined,
-  PlayCircleOutlined, PauseCircleOutlined,
+  PlayCircleOutlined, PauseCircleOutlined, VideoCameraOutlined, ExportOutlined,
 } from '@ant-design/icons'
 import IconFont from '../../components/IconFont/IconFont'
 import {
@@ -31,6 +31,23 @@ import './VideoFrame.css'
 const MAX_EXTRACTED_FRAMES = 180
 const DEFAULT_FPS = 8
 
+const HISTORY_KEY = 'pixelcraft-vf-history'
+const MAX_HISTORY = 12
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function formatHistoryTime(ts) {
+  const d = new Date(ts)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 const EXPORT_FRAME_PRESETS = [
   { value: null, label: '原始尺寸' },
   { value: 32, label: '32px' },
@@ -43,10 +60,43 @@ const ACCEPT_EXT = ['.mp4', '.avi', '.mov']
 const ACCEPT_MIME = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/avi']
 
 const STEPS = [
-  { key: 'upload', icon: 'icon-video', label: '上传视频' },
-  { key: 'extract', icon: 'icon-search', label: '智能抽帧' },
-  { key: 'sprite', icon: 'icon-image', label: '生成精灵图集' },
+  { key: 'upload', icon: 'icon-video', label: '上传动作视频' },
+  { key: 'extract', icon: 'icon-search', label: 'AI 智能抽帧抠图' },
+  { key: 'sprite', icon: 'icon-image', label: '生成导出精灵资源' },
 ]
+
+const TIP_ITEMS = [
+  {
+    Icon: VideoCameraOutlined,
+    title: '视频准备',
+    desc: '上传 5–30 秒循环动作，背景尽量使用纯色，提升抠图效果',
+  },
+  {
+    Icon: SettingOutlined,
+    title: '帧率设置',
+    desc: '像素角色推荐 8–12 FPS，3D 演示 / 技能动画推荐 12–24 FPS',
+  },
+  {
+    Icon: ExportOutlined,
+    title: '导出选项',
+    desc: '开启智能抠图后，可导出透明 PNG 序列与 Spine 工程包',
+  },
+]
+
+function statusTone(type, value, { videoFile, isProcessing, extractComplete, progress }) {
+  if (type === 'video') return videoFile ? 'success' : 'idle'
+  if (type === 'frames') {
+    if (value !== '等待识别' && value !== '识别中…') return 'success'
+    if (value === '识别中…') return 'active'
+    return 'idle'
+  }
+  if (type === 'progress') {
+    if (extractComplete) return 'success'
+    if (isProcessing) return 'active'
+    return 'idle'
+  }
+  return 'idle'
+}
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -129,6 +179,7 @@ export default function VideoFrame() {
   const [animationPlaying, setAnimationPlaying] = useState(false)
   const [animationIndex, setAnimationIndex] = useState(0)
   const [statusText, setStatusText] = useState('')
+  const [history, setHistory] = useState(() => loadHistory())
   const [spineSkeletonName, setSpineSkeletonName] = useState('character')
   const [spineAnimationName, setSpineAnimationName] = useState('idle')
   const [spineSlotName, setSpineSlotName] = useState('body')
@@ -253,11 +304,11 @@ export default function VideoFrame() {
     const ext = ACCEPT_EXT.some(e => file.name.toLowerCase().endsWith(e))
     const mimeOk = ACCEPT_MIME.includes(file.type) || file.type === ''
     if (!ext && !mimeOk) {
-      setUploadError('不支持该格式，请上传 MP4 / AVI / MOV 文件')
+      setUploadError('上传失败：文件格式不支持，请检查后重新上传（支持 MP4 / AVI / MOV）')
       return false
     }
     if (file.size > 500 * 1024 * 1024) {
-      setUploadError('文件过大，请上传小于 500MB 的视频')
+      setUploadError('上传失败：文件大小超出限制（≤ 500MB），请检查后重新上传')
       return false
     }
     setUploadError('')
@@ -270,7 +321,7 @@ export default function VideoFrame() {
     video.preload = 'metadata'
     video.onloadedmetadata = () => {
       if (video.duration < 2) {
-        setUploadError('视频过短，请上传时长 ≥ 2 秒的视频')
+        setUploadError('上传失败：视频时长过短，请上传 ≥ 2 秒的动作视频')
         URL.revokeObjectURL(url)
         return
       }
@@ -298,7 +349,7 @@ export default function VideoFrame() {
       message.success('视频上传成功')
     }
     video.onerror = () => {
-      setUploadError('无法读取视频文件，请换用 MP4 格式重试')
+      setUploadError('上传失败：无法读取视频文件，请换用 MP4 格式后重新上传')
       URL.revokeObjectURL(url)
     }
     video.src = url
@@ -480,9 +531,30 @@ export default function VideoFrame() {
       setStatusText('正在生成精灵图预览…')
       await generateSheetPreview(assets)
       setStatusText('')
+      const thumbUrl = displaySource[0]
+        ? (displaySource[0].processedImage ?? displaySource[0].image).toDataURL('image/png')
+        : ''
+      const entry = {
+        id: `${Date.now()}`,
+        fileName: videoFile.name,
+        frameCount: displaySource.length,
+        fps: framesPerSecond,
+        removeBg,
+        createdAt: Date.now(),
+        thumbUrl,
+      }
+      try {
+        const next = [entry, ...loadHistory()].slice(0, MAX_HISTORY)
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+        setHistory(next)
+      } catch {
+        /* ignore */
+      }
       message.success(`抽帧完成！共 ${displaySource.length} 帧${removeBg ? '（已抠图）' : ''}`)
     } catch (error) {
-      setExtractError(error instanceof Error ? error.message : '抽帧失败，请换用 MP4 后重试')
+      setExtractError(error instanceof Error && error.message
+        ? `处理失败：${error.message}`
+        : '处理失败：视频关键帧识别失败，请尝试更换背景更干净、动作更清晰的视频')
       setStatusText('')
     } finally {
       setIsProcessing(false)
@@ -637,16 +709,50 @@ export default function VideoFrame() {
 
   const pageCentered = !extractComplete && frames.length === 0 && !isProcessing
 
+  const frameStatLabel = frames.length > 0
+    ? `${frames.length} 帧`
+    : isProcessing
+      ? '识别中…'
+      : '等待识别'
+
+  const progressStatLabel = extractComplete
+    ? '已完成'
+    : isProcessing
+      ? `${progress}% 处理中`
+      : '待处理'
+
+  const handleMainBtnClick = () => {
+    if (btnState === 'complete') {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
+    if (btnState === 'disabled') {
+      inputRef.current?.click()
+      return
+    }
+    void handleExtract()
+  }
+
   return (
-    <div className={`vf-page ${pageCentered ? 'vf-page--centered' : ''}`}>
+    <div className={`vf-page atelier-page-wrap ${pageCentered ? 'vf-page--centered' : ''}`}>
       <div className="vf-page-bg" aria-hidden="true" />
       <div className="vf-page-grid" aria-hidden="true" />
 
-      <div className="vf-page-center">
-      <header className="vf-header">
-        <h1 className="vf-title">AI 游戏视频智能抽帧</h1>
-        <p className="vf-subtitle">上传角色动作视频，AI 识别关键帧并合成精灵图集</p>
-      </header>
+      <div className="atelier-page vf-page-studio">
+        <header className="atelier-hero atelier-hero--center atelier-enter">
+          <div className="atelier-title-row">
+            <ScissorOutlined />
+            <h1 className="atelier-title">AI 游戏视频智能抽帧 | 一键生成精灵图集</h1>
+          </div>
+          <p className="atelier-subtitle">
+            专为游戏美术打造，上传角色动作视频，AI 自动识别关键帧、智能抠图，一键导出精灵图 / Spine 骨骼包，告别逐帧手动处理
+          </p>
+        </header>
+
+        <div className="vf-studio-stack atelier-enter atelier-enter--1">
+          <div className="vf-studio-row">
+            <div className="vf-studio-main">
+            <div className="vf-page-center">
 
       {/* 流程提示条 */}
       <div className="vf-steps">
@@ -661,7 +767,9 @@ export default function VideoFrame() {
                   <IconFont type={step.icon} className="vf-step-icon" />
                 )}
               </div>
-              <span className="vf-step-label">{step.label}</span>
+              <span className="vf-step-label">
+                {index + 1}. {step.label}
+              </span>
               {index < STEPS.length - 1 && (
                 <div className={`vf-step-line ${status === 'done' ? 'vf-step-line--done' : ''}`} />
               )}
@@ -669,6 +777,7 @@ export default function VideoFrame() {
           )
         })}
       </div>
+      <p className="vf-steps-hint">全程自动处理，无需人工干预，5 分钟搞定游戏美术素材</p>
 
       {/* 上传区 */}
       <div
@@ -701,7 +810,9 @@ export default function VideoFrame() {
               {uploadError ? (
                 <IconFont type="icon-clear" className="vf-upload-icon vf-upload-icon--error" />
               ) : (
-                <CloudUploadOutlined className="vf-upload-icon" />
+                <Tooltip title="支持拖拽或点击上传，推荐纯色背景、5–30 秒循环动作视频">
+                  <CloudUploadOutlined className="vf-upload-icon" />
+                </Tooltip>
               )}
               <IconFont type="icon-magic" className="vf-upload-ai-badge" />
             </div>
@@ -709,8 +820,16 @@ export default function VideoFrame() {
               <p className="vf-upload-main">松手即可上传</p>
             ) : (
               <>
-                <p className="vf-upload-main">点击或拖拽上传角色动作视频</p>
-                <p className="vf-upload-hint">支持 MP4 · AVI · MOV，单文件 ≤ 500MB</p>
+                <p className="vf-upload-main">拖拽或点击上传角色动作视频</p>
+                <div className="vf-upload-hints">
+                  <p className="vf-upload-hint">支持格式：MP4 / AVI / MOV</p>
+                  <p className="vf-upload-hint">单文件上限：≤ 500MB</p>
+                </div>
+                {!uploadError && (
+                  <p className="vf-upload-empty-guide">
+                    还没有上传视频？试试上传一段角色待机 / 攻击的循环动画，AI 帮你一键生成游戏美术素材
+                  </p>
+                )}
               </>
             )}
             {uploadError && <p className="vf-upload-error">{uploadError}</p>}
@@ -741,9 +860,10 @@ export default function VideoFrame() {
         )}
       </div>
 
-      <p className="vf-scene-tip">
-        适合 2D 像素角色、3D 模型演示、技能循环动画，建议时长 5–30 秒
-      </p>
+      <div className="vf-scene-tips">
+        <p className="vf-scene-tip">场景适配：2D 像素角色、3D 模型演示、技能循环动画</p>
+        <p className="vf-scene-tip">建议设置：时长 5–30 秒，帧率 8–24 FPS，背景纯色更易抠图</p>
+      </div>
 
       {videoFile && !extractComplete && (
         <div className="vf-advanced-panel">
@@ -870,15 +990,15 @@ export default function VideoFrame() {
         <button
           type="button"
           className={`vf-main-btn vf-main-btn--${btnState}`}
-          disabled={btnState === 'disabled' || btnState === 'loading'}
-          onClick={btnState === 'complete' ? () => resultsRef.current?.scrollIntoView({ behavior: 'smooth' }) : handleExtract}
+          disabled={btnState === 'loading'}
+          onClick={handleMainBtnClick}
         >
           {btnState === 'loading' && <LoadingOutlined className="vf-btn-spinner" spin />}
           {btnState === 'complete' && <CheckCircleOutlined />}
           {btnState === 'ready' && <ScissorOutlined />}
           <span>
-            {btnState === 'disabled' && '请先上传视频'}
-            {btnState === 'ready' && '开始智能抽帧'}
+            {btnState === 'disabled' && '上传视频开始处理'}
+            {btnState === 'ready' && '开始 AI 抽帧处理'}
             {btnState === 'loading' && 'AI 正在分析动作帧…'}
             {btnState === 'complete' && `抽帧完成！查看图集（${frames.length} 帧）`}
           </span>
@@ -902,7 +1022,6 @@ export default function VideoFrame() {
         {extractError && <p className="vf-extract-error">{extractError}</p>}
         {statusText && <p className="vf-status-text">{statusText}</p>}
       </div>
-      </div>
 
       {/* 结果预览区 */}
       {(frames.length > 0 || isProcessing) && (
@@ -914,15 +1033,17 @@ export default function VideoFrame() {
             </h2>
             {frames.length > 0 && (
               <Space>
-                <Button
-                  type="primary"
-                  icon={<DownloadOutlined />}
-                  className="vf-download-btn"
-                  loading={exporting}
-                  onClick={() => { void handleExportSheet() }}
-                >
-                  下载精灵图
-                </Button>
+                <Tooltip title="带序列帧的 PNG 图集，直接用于游戏引擎">
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    className="vf-download-btn"
+                    loading={exporting}
+                    onClick={() => { void handleExportSheet() }}
+                  >
+                    下载精灵图
+                  </Button>
+                </Tooltip>
                 <Dropdown
                   menu={{
                     items: [
@@ -933,7 +1054,9 @@ export default function VideoFrame() {
                   }}
                   disabled={exporting}
                 >
-                  <Button icon={<DownloadOutlined />}>更多导出</Button>
+                  <Tooltip title="GIF / 透明 ZIP / Spine 等多种格式导出">
+                    <Button icon={<DownloadOutlined />}>更多导出</Button>
+                  </Tooltip>
                 </Dropdown>
                 <Button
                   icon={<SettingOutlined />}
@@ -1015,14 +1138,16 @@ export default function VideoFrame() {
                 <Input value={spineSlotName} onChange={(e) => setSpineSlotName(e.target.value)} />
               </label>
             </div>
-            <Button
-              style={{ marginTop: 12 }}
-              icon={<DownloadOutlined />}
-              loading={exporting}
-              onClick={() => { void handleExportSpine() }}
-            >
-              下载 Spine 资源包
-            </Button>
+            <Tooltip title="导出 Spine 可编辑工程文件，支持骨骼绑定与关键帧调整">
+              <Button
+                style={{ marginTop: 12 }}
+                icon={<DownloadOutlined />}
+                loading={exporting}
+                onClick={() => { void handleExportSpine() }}
+              >
+                下载 Spine 资源包
+              </Button>
+            </Tooltip>
           </div>
           )}
 
@@ -1056,6 +1181,93 @@ export default function VideoFrame() {
           )}
         </section>
       )}
+          </div>
+
+            </div>
+
+            <aside className="vf-side-widgets">
+              <section className="vf-widget">
+                <header className="vf-widget-head">
+                  <h3 className="vf-widget-title">使用小贴士</h3>
+                </header>
+                <ul className="vf-widget-list">
+                  {TIP_ITEMS.map(({ Icon, title, desc }) => (
+                    <li key={title} className="vf-widget-list-item">
+                      <span className="vf-widget-thumb" aria-hidden="true">
+                        <Icon />
+                      </span>
+                      <div className="vf-widget-body">
+                        <strong>{title}</strong>
+                        <p>{desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="vf-widget">
+                <header className="vf-widget-head">
+                  <h3 className="vf-widget-title">处理状态</h3>
+                </header>
+                <ul className="vf-widget-status-list">
+                  <li>
+                    <span className="vf-widget-status-label">视频</span>
+                    <span className={`vf-pill vf-pill--${statusTone('video', null, { videoFile, isProcessing, extractComplete, progress })}`}>
+                      {videoFile ? '已上传' : '未上传'}
+                    </span>
+                  </li>
+                  <li>
+                    <span className="vf-widget-status-label">关键帧</span>
+                    <span className={`vf-pill vf-pill--${statusTone('frames', frameStatLabel, { videoFile, isProcessing, extractComplete, progress })}`}>
+                      {frameStatLabel}
+                    </span>
+                  </li>
+                  <li>
+                    <span className="vf-widget-status-label">进度</span>
+                    <span className={`vf-pill vf-pill--${statusTone('progress', progressStatLabel, { videoFile, isProcessing, extractComplete, progress })}`}>
+                      {progressStatLabel}
+                    </span>
+                  </li>
+                </ul>
+              </section>
+
+              <section className="vf-widget vf-widget--history">
+                <header className="vf-widget-head">
+                  <h3 className="vf-widget-title">历史记录</h3>
+                  {history.length > 0 && (
+                    <span className="vf-widget-action">共 {history.length} 条</span>
+                  )}
+                </header>
+                {history.length === 0 ? (
+                  <p className="vf-widget-empty">完成抽帧后将自动保存至此</p>
+                ) : (
+                  <ul className="vf-widget-list vf-widget-list--history">
+                    {history.map((item) => (
+                      <li key={item.id} className="vf-widget-list-item">
+                        <span className="vf-widget-thumb vf-widget-thumb--img">
+                          {item.thumbUrl ? (
+                            <img src={item.thumbUrl} alt="" />
+                          ) : (
+                            <IconFont type="icon-image" />
+                          )}
+                        </span>
+                        <div className="vf-widget-body">
+                          <strong>{item.fileName}</strong>
+                          <p>{item.frameCount} 帧 · {item.fps} FPS{item.removeBg ? ' · 已抠图' : ''}</p>
+                          <div className="vf-widget-meta">
+                            <span className="vf-pill vf-pill--success">已完成</span>
+                            <span className="vf-widget-time">{formatHistoryTime(item.createdAt)}</span>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </aside>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

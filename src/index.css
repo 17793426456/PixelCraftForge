@@ -72,8 +72,8 @@
   --jm-text-secondary: var(--color-text-secondary);
   --jm-text-muted: var(--color-text-muted);
   --jm-btn-gradient: var(--gradient-primary);
-  --sidebar-width-expanded: 232px;
-  --sidebar-width-collapsed: 72px;
+  --sidebar-width-expanded: 250px;
+  --sidebar-width-collapsed: 88px;
   --sidebar-width: var(--sidebar-width-expanded);
   --sidebar-rail-circle: #0a0a0c;
   --sidebar-rail-label: rgba(255, 255, 255, 0.82);

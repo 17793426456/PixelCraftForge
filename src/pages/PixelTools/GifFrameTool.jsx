@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Button, InputNumber, message, Radio, Slider, Space, Tabs, Upload } from 'antd'
-import { DownloadOutlined, FileImageOutlined } from '@ant-design/icons'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Button, Collapse, ColorPicker, InputNumber, message, Radio, Segmented, Slider, Space, Tabs, Upload,
+} from 'antd'
+import {
+  CheckCircleOutlined, CloudUploadOutlined, DownloadOutlined, DownOutlined,
+  FileImageOutlined, PictureOutlined, ReloadOutlined,
+} from '@ant-design/icons'
 import JSZip from 'jszip'
 import { superSplitByTransparent } from '../../lib/frameRonin/superSplitTransparent.js'
 import { stitchImageBlobs } from '../../lib/frameRonin/simpleStitchVertical.js'
@@ -8,17 +13,180 @@ import {
   buildGifFromCanvases,
   canvasToBlob,
   combineCanvasesToSheet,
-  extractGifFrames,
+  extractGifFramesWithOptions,
+  getGifInfo,
   loadImageFromFile,
   loadImagesFromFiles,
+  previewGifFrames,
   splitImageGrid,
   triggerDownload,
 } from '../../lib/frameRonin/gifUtils.js'
 
 const { Dragger } = Upload
+const MAX_GIF_SIZE = 50 * 1024 * 1024
 
-export default function GifFrameTool() {
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function GifUploadZone({ file, onFile, onClear, parsing }) {
+  const inputRef = useRef(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [error, setError] = useState('')
+
+  const validate = (f) => {
+    if (!f.name.toLowerCase().endsWith('.gif')) {
+      setError('仅支持 .gif 格式')
+      return false
+    }
+    if (f.size > MAX_GIF_SIZE) {
+      setError('单文件最大 50MB')
+      return false
+    }
+    setError('')
+    return true
+  }
+
+  const pick = (f) => {
+    if (validate(f)) onFile(f)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const f = e.dataTransfer.files?.[0]
+    if (f) pick(f)
+  }
+
+  return (
+    <div className="pt-upload-zone-wrap">
+      <div
+        className={[
+          'pt-upload-zone',
+          dragOver && 'is-dragging',
+          file && 'is-success',
+          error && 'is-error',
+        ].filter(Boolean).join(' ')}
+        onDragEnter={(e) => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={(e) => { e.preventDefault(); setDragOver(false) }}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+        onClick={() => !file && inputRef.current?.click()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && !file && inputRef.current?.click()}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".gif"
+          className="pt-upload-input"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) pick(f)
+            e.target.value = ''
+          }}
+        />
+
+        {!file ? (
+          <>
+            <div className={`pt-upload-icon-wrap ${dragOver ? 'is-float' : ''}`}>
+              <CloudUploadOutlined className="pt-upload-icon" />
+              <FileImageOutlined className="pt-upload-badge" />
+            </div>
+            <p className="pt-upload-main">
+              {dragOver ? '松手即可上传' : '拖拽 GIF 文件到此处，或点击上传'}
+            </p>
+            <p className="pt-upload-sub">支持 .gif 格式，单文件最大 50MB</p>
+            {error && <p className="pt-upload-error">{error}</p>}
+          </>
+        ) : (
+          <div className="pt-upload-success" onClick={(e) => e.stopPropagation()}>
+            <div className="pt-upload-file-icon">
+              <FileImageOutlined />
+              <CheckCircleOutlined className="pt-upload-check" />
+            </div>
+            <div className="pt-upload-meta">
+              <p className="pt-upload-name">{file.name}</p>
+              <p className="pt-upload-tags">
+                <span>{formatSize(file.size)}</span>
+                {parsing && <span>解析中…</span>}
+              </p>
+            </div>
+            <Button size="small" icon={<ReloadOutlined />} onClick={() => { onClear(); setError('') }}>
+              重新上传
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FramePreviewSection({ urls, totalFrames, loading }) {
+  if (loading) {
+    return (
+      <section className="pt-preview-section">
+        <header className="pt-preview-head">
+          <h4><PictureOutlined /> 帧预览</h4>
+        </header>
+        <div className="pt-preview-loading">正在解析 GIF 帧…</div>
+      </section>
+    )
+  }
+
+  if (urls.length === 0) {
+    return (
+      <section className="pt-preview-section pt-preview-section--empty">
+        <header className="pt-preview-head">
+          <h4><PictureOutlined /> 帧预览</h4>
+        </header>
+        <div className="pt-preview-placeholder">
+          <div className="pt-preview-placeholder-grid" aria-hidden="true">
+            {Array.from({ length: 8 }, (_, i) => (
+              <span key={i} className="pt-preview-placeholder-cell" />
+            ))}
+          </div>
+          <p>上传 GIF 后，帧序列将在此处预览</p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="pt-preview-section">
+      <header className="pt-preview-head">
+        <h4><PictureOutlined /> 帧预览</h4>
+        {totalFrames > 0 && (
+          <span className="pt-preview-count">
+            预览 {urls.length} / 共 {totalFrames} 帧
+          </span>
+        )}
+      </header>
+      <div className="pixel-frame-grid pt-frame-grid--scroll">
+        {urls.map((url, index) => (
+          <div key={url} className="pixel-frame-thumb">
+            <span className="pt-frame-index">{index + 1}</span>
+            <img src={url} alt={`帧 ${index + 1}`} />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
   const [gifFile, setGifFile] = useState(null)
+  const [gifInfo, setGifInfo] = useState(null)
+  const [gifParsing, setGifParsing] = useState(false)
+  const [frameStep, setFrameStep] = useState(1)
+  const [frameRange, setFrameRange] = useState([1, 1])
+  const [bgMode, setBgMode] = useState('transparent')
+  const [bgColor, setBgColor] = useState('#000000')
+  const [optionsOpen, setOptionsOpen] = useState(false)
+
   const [frameFiles, setFrameFiles] = useState([])
   const [gridFile, setGridFile] = useState(null)
   const [gridCols, setGridCols] = useState(4)
@@ -27,16 +195,71 @@ export default function GifFrameTool() {
   const [frameDelay, setFrameDelay] = useState(100)
   const [stitchFiles, setStitchFiles] = useState([])
   const [stitchMode, setStitchMode] = useState(0)
+  const [activeTab, setActiveTab] = useState('gif2frames')
   const [loading, setLoading] = useState(false)
   const [previewUrls, setPreviewUrls] = useState([])
+  const [gifPreviewUrls, setGifPreviewUrls] = useState([])
 
   useEffect(() => () => {
     previewUrls.forEach((url) => URL.revokeObjectURL(url))
-  }, [previewUrls])
+    gifPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
+  }, [previewUrls, gifPreviewUrls])
 
   const clearPreviews = () => {
     previewUrls.forEach((url) => URL.revokeObjectURL(url))
     setPreviewUrls([])
+  }
+
+  const clearGifPreviews = () => {
+    gifPreviewUrls.forEach((url) => URL.revokeObjectURL(url))
+    setGifPreviewUrls([])
+  }
+
+  const applyTemplate = useCallback((preset) => {
+    if (preset.frameStep) setFrameStep(preset.frameStep)
+    if (preset.bgMode) setBgMode(preset.bgMode)
+    if (preset.optionsOpen) setOptionsOpen(true)
+    message.info(`已套用「${preset.label}」推荐设置`)
+  }, [])
+
+  useEffect(() => {
+    onRegisterTemplate?.(applyTemplate)
+  }, [applyTemplate, onRegisterTemplate])
+
+  useEffect(() => {
+    onStatusChange?.({
+      gifFile,
+      gifInfo,
+      loading,
+      frameStep,
+      bgMode,
+    })
+  }, [gifFile, gifInfo, loading, frameStep, bgMode, onStatusChange])
+
+  const handleGifPick = async (file) => {
+    clearGifPreviews()
+    setGifFile(file)
+    setGifParsing(true)
+    setGifInfo(null)
+    try {
+      const info = await getGifInfo(file)
+      setGifInfo(info)
+      setFrameRange([1, info.frameCount])
+      const previews = await previewGifFrames(file, 12)
+      setGifPreviewUrls(previews.map((f) => URL.createObjectURL(f.blob)))
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'GIF 解析失败')
+      setGifFile(null)
+    } finally {
+      setGifParsing(false)
+    }
+  }
+
+  const handleGifClear = () => {
+    setGifFile(null)
+    setGifInfo(null)
+    clearGifPreviews()
+    setFrameRange([1, 1])
   }
 
   const handleGifExtract = async () => {
@@ -47,7 +270,13 @@ export default function GifFrameTool() {
     setLoading(true)
     clearPreviews()
     try {
-      const frames = await extractGifFrames(gifFile)
+      const frames = await extractGifFramesWithOptions(gifFile, {
+        frameStep,
+        startFrame: frameRange[0],
+        endFrame: frameRange[1],
+        bgMode,
+        bgColor: typeof bgColor === 'string' ? bgColor : bgColor.toHexString?.() ?? '#000000',
+      })
       const zip = new JSZip()
       frames.forEach((frame, index) => {
         zip.file(`frame_${String(index + 1).padStart(3, '0')}.png`, frame.blob)
@@ -172,24 +401,91 @@ export default function GifFrameTool() {
     }
   }
 
+  const gif2framesPanel = (
+    <div className="pt-gif-workspace">
+      <GifUploadZone
+        file={gifFile}
+        onFile={handleGifPick}
+        onClear={handleGifClear}
+        parsing={gifParsing}
+      />
+
+      <Collapse
+        ghost
+        className="pt-options-collapse"
+        activeKey={optionsOpen ? ['opts'] : []}
+        onChange={(keys) => setOptionsOpen(keys.includes('opts'))}
+        expandIcon={({ isActive }) => <DownOutlined rotate={isActive ? 180 : 0} />}
+        items={[{
+          key: 'opts',
+          label: '处理选项',
+          children: (
+            <div className="pt-options-panel">
+              <div className="pt-option-block">
+                <span className="pt-option-label">提取帧间隔</span>
+                <Segmented
+                  value={frameStep}
+                  onChange={setFrameStep}
+                  options={[
+                    { label: '每 1 帧', value: 1 },
+                    { label: '每 2 帧', value: 2 },
+                    { label: '每 5 帧', value: 5 },
+                  ]}
+                />
+              </div>
+              {gifInfo && (
+                <div className="pt-option-block">
+                  <span className="pt-option-label">
+                    提取范围：第 {frameRange[0]} — {frameRange[1]} 帧（共 {gifInfo.frameCount} 帧）
+                  </span>
+                  <Slider
+                    range
+                    min={1}
+                    max={gifInfo.frameCount}
+                    value={frameRange}
+                    onChange={setFrameRange}
+                  />
+                </div>
+              )}
+              <div className="pt-option-block">
+                <span className="pt-option-label">背景处理</span>
+                <Radio.Group value={bgMode} onChange={(e) => setBgMode(e.target.value)}>
+                  <Radio.Button value="transparent">透明背景</Radio.Button>
+                  <Radio.Button value="original">保留原背景</Radio.Button>
+                  <Radio.Button value="solid">填充纯色</Radio.Button>
+                </Radio.Group>
+                {bgMode === 'solid' && (
+                  <ColorPicker value={bgColor} onChange={setBgColor} showText className="pt-bg-picker" />
+                )}
+              </div>
+            </div>
+          ),
+        }]}
+      />
+
+      <div className="pt-export-bar">
+        <Button
+          type="primary"
+          size="large"
+          icon={<DownloadOutlined />}
+          loading={loading}
+          disabled={!gifFile}
+          onClick={() => { void handleGifExtract() }}
+        >
+          导出帧 ZIP
+        </Button>
+      </div>
+
+      <FramePreviewSection
+        urls={previewUrls.length > 0 ? previewUrls : gifPreviewUrls}
+        totalFrames={gifInfo?.frameCount ?? 0}
+        loading={gifParsing}
+      />
+    </div>
+  )
+
   const tabs = useMemo(() => [
-    {
-      key: 'gif2frames',
-      label: 'GIF 拆帧',
-      children: (
-        <>
-          <p className="pixel-tool-hint">将 GIF 动画拆分为 PNG 序列并打包 ZIP 下载。</p>
-          <Dragger accept=".gif" maxCount={1} beforeUpload={(f) => { setGifFile(f); return false }} onRemove={() => setGifFile(null)}>
-            <p><FileImageOutlined /> 上传 GIF 文件</p>
-          </Dragger>
-          <div className="pixel-tool-actions">
-            <Button type="primary" icon={<DownloadOutlined />} loading={loading} onClick={() => { void handleGifExtract() }}>
-              导出帧 ZIP
-            </Button>
-          </div>
-        </>
-      ),
-    },
+    { key: 'gif2frames', label: 'GIF 拆帧', children: gif2framesPanel },
     {
       key: 'frames2gif',
       label: '序列帧转 GIF',
@@ -260,18 +556,26 @@ export default function GifFrameTool() {
         </>
       ),
     },
-  ], [frameDelay, frameFiles, gifFile, gridCols, gridFile, gridRows, loading, sheetCols, stitchFiles, stitchMode])
+  ], [
+    bgColor, bgMode, frameDelay, frameFiles, frameRange, frameStep, gif2framesPanel,
+    gifInfo, gridCols, gridFile, gridRows, loading, sheetCols, stitchFiles, stitchMode,
+  ])
 
   return (
     <>
-      <Tabs items={tabs} />
-      {previewUrls.length > 0 && (
-        <div className="pixel-frame-grid">
-          {previewUrls.map((url, index) => (
-            <div key={url} className="pixel-frame-thumb">
-              <img src={url} alt={`帧 ${index + 1}`} />
-            </div>
-          ))}
+      <Tabs items={tabs} className="pt-inner-tabs" activeKey={activeTab} onChange={setActiveTab} />
+      {previewUrls.length > 0 && activeTab !== 'gif2frames' && (
+        <div className="pt-other-preview">
+          <header className="pt-preview-head">
+            <h4><PictureOutlined /> 处理结果预览</h4>
+          </header>
+          <div className="pixel-frame-grid">
+            {previewUrls.map((url, index) => (
+              <div key={url} className="pixel-frame-thumb">
+                <img src={url} alt={`帧 ${index + 1}`} />
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>

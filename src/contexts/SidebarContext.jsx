@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 const STORAGE_KEY = 'pixelcraft-sidebar-collapsed'
+export const MOBILE_BREAKPOINT = 768
+export const SIDEBAR_WIDTH = 250
+export const SIDEBAR_WIDTH_COLLAPSED = 88
 
 const SidebarContext = createContext(null)
 
@@ -12,6 +15,10 @@ export function SidebarProvider({ children }) {
       return false
     }
   })
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= MOBILE_BREAKPOINT,
+  )
 
   useEffect(() => {
     try {
@@ -21,11 +28,45 @@ export function SidebarProvider({ children }) {
     }
   }, [collapsed])
 
-  const toggle = useCallback(() => setCollapsed(v => !v), [])
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`)
+    const onChange = () => setIsMobile(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobile || !mobileOpen) return undefined
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [isMobile, mobileOpen])
+
+  const toggle = useCallback(() => {
+    if (isMobile) {
+      setMobileOpen((v) => !v)
+    } else {
+      setCollapsed((v) => !v)
+    }
+  }, [isMobile])
+
+  const openMobile = useCallback(() => setMobileOpen(true), [])
+  const closeMobile = useCallback(() => setMobileOpen(false), [])
 
   const value = useMemo(
-    () => ({ collapsed, toggle, setCollapsed }),
-    [collapsed, toggle],
+    () => ({
+      collapsed,
+      toggle,
+      setCollapsed,
+      isMobile,
+      mobileOpen,
+      openMobile,
+      closeMobile,
+    }),
+    [collapsed, toggle, isMobile, mobileOpen, openMobile, closeMobile],
   )
 
   return (

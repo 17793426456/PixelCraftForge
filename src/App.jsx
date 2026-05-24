@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { ConfigProvider, Spin, theme } from 'antd'
+import { MenuOutlined } from '@ant-design/icons'
 import zhCN from 'antd/locale/zh_CN'
 import Sidebar from './components/Sidebar/Sidebar'
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext'
@@ -60,22 +61,34 @@ const PageLoading = () => (
 )
 
 const WORKSPACE_ROUTES = ['/generate', '/customize', '/video-generate']
+const ATELIER_ROUTES = ['/video-frame', '/pixel-tools', '/scene', '/library']
 const STUDIO_ROUTES = ['/video-frame', '/pixel-tools']
 
 function AppLayout() {
   const location = useLocation()
-  const { collapsed } = useSidebar()
+  const { collapsed, toggle, isMobile } = useSidebar()
   const isWorkspace = WORKSPACE_ROUTES.includes(location.pathname)
-  const isStudio = STUDIO_ROUTES.includes(location.pathname)
+  const isAtelier = ATELIER_ROUTES.includes(location.pathname)
+  const isStudio = STUDIO_ROUTES.includes(location.pathname) || isAtelier
   const isHome = location.pathname === '/'
 
   return (
     <div
-      className={`app ${isWorkspace ? 'app-workspace' : ''} ${collapsed ? 'app--sidebar-collapsed' : ''}`}
+      className={`app ${isWorkspace ? 'app-workspace' : ''} ${collapsed && !isMobile ? 'app--sidebar-collapsed' : ''} ${isMobile ? 'app--mobile' : ''}`}
     >
+      {isMobile && (
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          onClick={toggle}
+          aria-label="打开导航"
+        >
+          <MenuOutlined />
+        </button>
+      )}
       <Sidebar />
       <main
-        className={`main-content ${isWorkspace ? 'main-content-workspace' : ''} ${isHome ? 'main-content-home' : ''} ${isStudio ? 'main-content-studio' : ''}`}
+        className={`main-content ${isWorkspace ? 'main-content-workspace' : ''} ${isHome ? 'main-content-home' : ''} ${isStudio ? 'main-content-studio' : ''} ${isAtelier ? 'main-content-atelier' : ''}`}
       >
         <Suspense fallback={<PageLoading />}>
           <Routes>
