@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Button, Progress, message, Slider, Checkbox, Space, Dropdown, InputNumber, Select, Segmented, Input, Tooltip } from '@/lib/ui/antd-compat'
+import { Button, Progress, message, Slider, Checkbox, Space, Dropdown, InputNumber, Select, Segmented, Input, Tooltip } from '@/components/app/wrapped-ui'
 import {
   ScissorOutlined, CheckCircleOutlined, ReloadOutlined, EyeOutlined,
   DownloadOutlined, SettingOutlined, LoadingOutlined, CloudUploadOutlined,
   PlayCircleOutlined, PauseCircleOutlined, VideoCameraOutlined, ExportOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import IconFont from '../../components/IconFont/IconFont'
 import {
   extractFrames,

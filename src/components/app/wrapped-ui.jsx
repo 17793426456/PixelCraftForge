@@ -1,9 +1,9 @@
 /**
- * Ant Design API 兼容层 — 底层使用 shadcn/ui，便于全项目快速迁移
+ * 复杂表单项的 shadcn 封装（Tabs items、Upload.Dragger、Modal 等）。
+ * 新页面请优先直接使用 @/components/ui/* 与 @/components/app/*，仅复杂场景引用本文件。
  */
 import { forwardRef } from 'react'
-import { Loader2 } from 'lucide-react'
-import { Button as ShButton } from '@/components/ui/button'
+import { Button } from '@/components/app/AppButton'
 import { Input as ShInput } from '@/components/ui/input'
 import { Textarea as ShTextarea } from '@/components/ui/textarea'
 import { Slider as ShSlider } from '@/components/ui/slider'
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Card as ShCard, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Button as ShButton } from '@/components/ui/button'
 import FileDropzone from '@/components/app/FileDropzone'
 import ColorPickerField from '@/components/app/ColorPickerField'
 import NumberInput from '@/components/app/NumberInput'
@@ -31,33 +32,7 @@ import AppSegmented from '@/components/app/AppSegmented'
 import { message } from '@/lib/ui/notify'
 import { cn } from '@/lib/utils'
 
-export { message }
-
-export function ConfigProvider({ children }) {
-  return children
-}
-
-export const theme = { darkAlgorithm: 'dark' }
-
-const Button = forwardRef(function Button({
-  type, variant, danger, ghost, loading, icon, children, className, size, ...props
-}, ref) {
-  let v = variant
-  if (!v) {
-    if (type === 'primary') v = 'default'
-    else if (type === 'text' || ghost) v = 'ghost'
-    else if (type === 'link') v = 'link'
-    else v = 'outline'
-  }
-  if (danger) v = 'destructive'
-  const sz = size === 'small' ? 'sm' : size === 'large' ? 'lg' : 'default'
-  return (
-    <ShButton ref={ref} variant={v} size={sz} className={className} disabled={loading || props.disabled} {...props}>
-      {loading ? <Loader2 className="size-4 animate-spin" /> : icon}
-      {children}
-    </ShButton>
-  )
-})
+export { message, Button }
 
 const Input = forwardRef(function Input(props, ref) {
   return <ShInput ref={ref} {...props} />
@@ -99,7 +74,7 @@ function Tag({ color, children, className }) {
   return <ShBadge variant={color === 'success' ? 'default' : 'secondary'} className={className}>{children}</ShBadge>
 }
 
-function BadgeAnt({ status, text, children, className, count }) {
+function Badge({ status, text, children, className, count }) {
   const variant = status === 'success' ? 'default' : status === 'error' ? 'destructive' : 'secondary'
   const content = text ?? children ?? count
   if (content == null) return null
@@ -107,13 +82,7 @@ function BadgeAnt({ status, text, children, className, count }) {
 }
 
 function Divider({ style, className, orientation = 'horizontal' }) {
-  return (
-    <Separator
-      orientation={orientation}
-      className={cn('my-4', className)}
-      style={style}
-    />
-  )
+  return <Separator orientation={orientation} className={cn('my-4', className)} style={style} />
 }
 
 function Modal({ open, title, children, onCancel, onOk, footer, width = 520, className }) {
@@ -183,9 +152,12 @@ function SelectWrap({ value, onChange, options = [], style, className, placehold
   )
 }
 
-function InputNumber({ value, onChange, min, max, step, style, className, disabled }) {
+function InputNumber({ value, onChange, min, max, step, style, className, disabled, addonBefore }) {
   return (
-    <NumberInput value={value} onChange={onChange} min={min} max={max} step={step} style={style} className={className} disabled={disabled} />
+    <div className="inline-flex items-center gap-2">
+      {addonBefore && <span className="text-xs text-muted-foreground">{addonBefore}</span>}
+      <NumberInput value={value} onChange={onChange} min={min} max={max} step={step} style={style} className={className} disabled={disabled} />
+    </div>
   )
 }
 
@@ -262,9 +234,10 @@ function TabsWrap({ activeKey, onChange, items = [], className, destroyInactiveT
   )
 }
 
-function Collapse({ items = [], ghost, className }) {
+function Collapse({ items = [], ghost, className, defaultActiveKey }) {
+  const defaultValue = Array.isArray(defaultActiveKey) ? defaultActiveKey : defaultActiveKey ? [defaultActiveKey] : undefined
   return (
-    <Accordion type="multiple" className={cn(ghost && 'border-none', className)}>
+    <Accordion type="multiple" defaultValue={defaultValue} className={cn(ghost && 'border-none', className)}>
       {items.map((item) => (
         <AccordionItem key={item.key} value={item.key}>
           <AccordionTrigger>{item.label}</AccordionTrigger>
@@ -275,13 +248,12 @@ function Collapse({ items = [], ghost, className }) {
   )
 }
 
-function Dragger({ accept, multiple, beforeUpload, onChange, onRemove, fileList, children, showUploadList, maxCount, style, className }) {
+function Dragger({ accept, multiple, beforeUpload, onChange, maxCount, style, className, children }) {
   const handleFiles = (files) => {
     const list = []
     for (const f of files) {
-      if (beforeUpload?.(f) === false) {
-        list.push(f)
-      } else if (beforeUpload) {
+      if (beforeUpload?.(f) === false) continue
+      if (beforeUpload) {
         const r = beforeUpload(f)
         if (r !== false) list.push(f)
       } else {
@@ -295,14 +267,7 @@ function Dragger({ accept, multiple, beforeUpload, onChange, onRemove, fileList,
     }
   }
   return (
-    <FileDropzone
-      accept={accept}
-      multiple={multiple}
-      maxCount={maxCount}
-      className={className}
-      style={style}
-      onFiles={handleFiles}
-    >
+    <FileDropzone accept={accept} multiple={multiple} maxCount={maxCount} className={className} style={style} onFiles={handleFiles}>
       {children}
     </FileDropzone>
   )
@@ -396,13 +361,12 @@ const Typography = {
 const Space = Stack
 
 export {
-  Button,
   Input,
   Slider,
   Switch,
   Checkbox,
   Tag,
-  BadgeAnt as Badge,
+  Badge,
   Progress,
   Spin,
   SelectWrap as Select,

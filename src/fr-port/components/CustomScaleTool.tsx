@@ -503,7 +503,7 @@ export default function RoninProCustomScale() {
       )}
 
       <Space>
-        <Button type="primary" loading={loading} onClick={runScale} disabled={!file} icon={<ExpandOutlined />}>
+        <Button type="primary" loading={loading} onClick={runScale} disabled={!file} icon={<Expand />}>
           {t('roninProCustomScaleApply')}
         </Button>
       </Space>

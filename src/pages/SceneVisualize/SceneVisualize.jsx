@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Tag, message, Input, Progress, Tooltip, Space, Segmented, Checkbox,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   PictureOutlined, BulbOutlined, AppstoreOutlined, EditOutlined,
   PlaySquareOutlined, TableOutlined, ApartmentOutlined,
   ColumnWidthOutlined, BorderOuterOutlined, ColumnHeightOutlined,
   DownloadOutlined, ZoomInOutlined, ReloadOutlined, SwapOutlined,
   ThunderboltOutlined, RocketOutlined, FileTextOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import IconFont from '../../components/IconFont/IconFont'
 import sceneTileBuild from '../../constants/features/scene-tile-build.js'
 import sceneObjectCollision from '../../constants/features/scene-object-collision.js'

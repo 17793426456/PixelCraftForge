@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Slider, Upload, ColorPicker, message, Tooltip, Select, Input, Dropdown,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   DownloadOutlined, PlusOutlined, DeleteOutlined, BgColorsOutlined,
   UndoOutlined, RedoOutlined, SaveOutlined, ClearOutlined, CopyOutlined,
   EditOutlined, DragOutlined, ZoomInOutlined, ZoomOutOutlined,
   LockOutlined, UnlockOutlined, EyeOutlined, EyeInvisibleOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import imageLayerEdit from '../../constants/features/image-layer-edit.js'
 import assistRefTrace from '../../constants/features/assist-ref-trace.js'

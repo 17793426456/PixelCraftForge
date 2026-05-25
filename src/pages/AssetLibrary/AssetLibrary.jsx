@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Tag, Input, Button, Row, Col, Space, Slider, Modal, message, Upload, Select,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   DownloadOutlined, SwapOutlined, ExportOutlined, AppstoreOutlined,
   InboxOutlined, FolderOutlined, SaveOutlined, DeleteOutlined, UploadOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import assetFolderArchive from '../../constants/features/asset-folder-archive.js'
 import assetFormatConvert from '../../constants/features/asset-format-convert.js'

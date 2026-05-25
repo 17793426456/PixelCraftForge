@@ -37,24 +37,6 @@ export default defineConfig({
           ) {
             return 'react-vendor'
           }
-          // Ant Design Icons
-          if (
-            id.includes('node_modules/@ant-design/icons') ||
-            id.includes('node_modules/@ant-design/icons-svg')
-          ) {
-            return 'antd-icons'
-          }
-          // Ant Design 主体（含 rc-* 子组件、@rc-component/*）
-          if (
-            id.includes('node_modules/antd/') ||
-            id.includes('node_modules/rc-') ||
-            id.includes('node_modules/@rc-component/') ||
-            id.includes('node_modules/@ctrl/tinycolor') ||
-            id.includes('node_modules/@ant-design/cssinjs') ||
-            id.includes('node_modules/@ant-design/colors')
-          ) {
-            return 'antd'
-          }
           // 其他第三方
           return 'vendor'
         },

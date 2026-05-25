@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react'
 import {
   Button, Upload, Checkbox, Tag, message, Space, Input, Tooltip, Dropdown, Progress, Slider,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   ThunderboltOutlined, HighlightOutlined, PictureOutlined, PlayCircleOutlined,
   ReloadOutlined, InfoCircleOutlined, RightOutlined, DownOutlined, PauseCircleOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import IconFont from '../../components/IconFont/IconFont'
 import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
 import vfxPresets from '../../constants/features/vfx-presets.js'

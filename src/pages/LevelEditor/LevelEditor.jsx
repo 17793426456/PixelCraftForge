@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Input, Select, Space, message, Tag, Tooltip,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   DownloadOutlined, SaveOutlined, DeleteOutlined, ZoomInOutlined, ZoomOutOutlined,
   BorderOutlined, ThunderboltOutlined, FileTextOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import JSZip from 'jszip'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import sceneTileBuild from '../../constants/features/scene-tile-build.js'

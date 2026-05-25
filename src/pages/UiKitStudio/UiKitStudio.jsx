@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Button, Upload, message, Checkbox, Space, InputNumber } from '@/lib/ui/antd-compat'
-import { DownloadOutlined, AppstoreOutlined, SaveOutlined } from '@ant-design/icons'
+import { Download, LayoutGrid, Save } from 'lucide-react'
+import { Button } from '@/components/app/AppButton'
+import { Checkbox } from '@/components/ui/checkbox'
+import FileDropzone from '@/components/app/FileDropzone'
+import NumberInput from '@/components/app/NumberInput'
+import Stack from '@/components/app/Stack'
+import { message } from '@/lib/ui/notify'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import uiDrawComponents from '../../constants/features/ui-draw-components.js'
 import uiStateSprites from '../../constants/features/ui-state-sprites.js'
@@ -135,25 +140,28 @@ export default function UiKitStudio() {
     <div className="vf-page atelier-page-wrap">
       <div className="atelier-page atelier-page--wide">
         <header className="atelier-hero">
-          <h1 className="atelier-title"><AppstoreOutlined /> UI 素材工作室</h1>
+          <h1 className="atelier-title"><LayoutGrid className="inline size-5" /> UI 素材工作室</h1>
           <p className="atelier-subtitle">上传切图或绘制按钮模板，生成 normal / hover / disabled 三态并打包</p>
         </header>
         <FeatureCallout feature={uiDrawComponents} />
         <FeatureCallout feature={uiStateSprites} />
         <FeatureCallout feature={uiPackExport} />
-        <Space wrap style={{ marginBottom: 16 }}>
+        <Stack wrap style={{ marginBottom: 16 }}>
           <Button type={mode === 'upload' ? 'primary' : 'default'} onClick={() => setMode('upload')}>上传模式</Button>
           <Button type={mode === 'template' ? 'primary' : 'default'} onClick={() => setMode('template')}>模板绘制</Button>
-          <Checkbox checked={export2x} onChange={(e) => setExport2x(e.target.checked)}>@2x 导出</Checkbox>
-        </Space>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <Checkbox checked={export2x} onCheckedChange={setExport2x} />
+            @2x 导出
+          </label>
+        </Stack>
         {mode === 'upload' ? (
-          <Upload beforeUpload={(f) => { setFile(f); return false }} showUploadList={false} accept="image/*">
+          <FileDropzone accept="image/*" onFiles={(files) => { if (files[0]) setFile(files[0]) }}>
             <Button>上传 UI 图</Button>
-          </Upload>
+          </FileDropzone>
         ) : (
-          <Space wrap style={{ marginBottom: 16 }}>
-            <InputNumber min={80} max={320} value={templateW} onChange={(v) => setTemplateW(v ?? 160)} addonBefore="宽" />
-            <InputNumber min={24} max={96} value={templateH} onChange={(v) => setTemplateH(v ?? 48)} addonBefore="高" />
+          <Stack wrap style={{ marginBottom: 16 }}>
+            <span className="inline-flex items-center gap-2 text-sm"><span className="text-muted-foreground">宽</span><NumberInput min={80} max={320} value={templateW} onChange={(v) => setTemplateW(v ?? 160)} /></span>
+            <span className="inline-flex items-center gap-2 text-sm"><span className="text-muted-foreground">高</span><NumberInput min={24} max={96} value={templateH} onChange={(v) => setTemplateH(v ?? 48)} /></span>
             <input
               value={templateLabel}
               onChange={(e) => setTemplateLabel(e.target.value)}
@@ -161,11 +169,11 @@ export default function UiKitStudio() {
               style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff' }}
             />
             <Button type="primary" onClick={() => { void generateFromTemplate() }}>生成三态</Button>
-          </Space>
+          </Stack>
         )}
         <div style={{ marginBottom: 20, display: 'flex', gap: 12 }}>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={() => { void handleExport() }}>导出三态 ZIP</Button>
-          <Button icon={<SaveOutlined />} onClick={() => { void saveToLibrary() }}>存入仓库</Button>
+          <Button type="primary" icon={<Download />} onClick={() => { void handleExport() }}>导出三态 ZIP</Button>
+          <Button icon={<Save />} onClick={() => { void saveToLibrary() }}>存入仓库</Button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
           {STATES.map((s) => (

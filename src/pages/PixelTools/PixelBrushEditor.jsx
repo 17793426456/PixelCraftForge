@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Slider, Space, Upload, ColorPicker, Select, Tooltip, message, Divider,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   DownloadOutlined, UndoOutlined, ClearOutlined, SaveOutlined, UploadOutlined,
   BorderOutlined, EditOutlined, FormatPainterOutlined, BgColorsOutlined,
   ColumnWidthOutlined, EyeOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import { triggerDownload } from '../../lib/assets/imageExport.js'
 import { saveCanvasToLibrary } from '../../lib/assets/saveToLibrary.js'
 

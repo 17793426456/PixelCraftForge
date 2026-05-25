@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button, Collapse, ColorPicker, InputNumber, message, Radio, Segmented, Slider, Space, Tabs, Upload,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   CheckCircleOutlined, CloudUploadOutlined, DownloadOutlined, DownOutlined,
   FileImageOutlined, PictureOutlined, ReloadOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import JSZip from 'jszip'
 import { superSplitByTransparent } from '../../lib/frameRonin/superSplitTransparent.js'
 import { stitchImageBlobs } from '../../lib/frameRonin/simpleStitchVertical.js'

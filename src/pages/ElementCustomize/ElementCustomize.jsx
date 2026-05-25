@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import {
   Button, Upload, Checkbox, message, Badge, Input, Tooltip, Dropdown, ColorPicker,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   ThunderboltOutlined, UploadOutlined, ReloadOutlined, DownOutlined, SaveOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import IconFont from '../../components/IconFont/IconFont'
 import uiLayoutStyle from '../../constants/features/ui-layout-style.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import { applyLocalTransform } from '../../lib/customize/localImageTransform.js'
 import { saveDataUrlToLibrary } from '../../lib/assets/saveToLibrary.js'
+import { resolveMediaUrl } from '../../lib/api/mediaUrl.js'
 import { triggerDownload } from '../../lib/assets/imageExport.js'
 import '../ElementGenerate/ElementGenerate.css'
 import './ElementCustomize.css'
@@ -114,7 +115,7 @@ export default function ElementCustomize() {
       for (const el of targets) {
         const url = el.processedUrl || processedPreview
         if (!url) continue
-        const res = await fetch(url)
+        const res = await fetch(resolveMediaUrl(url))
         const blob = await res.blob()
         triggerDownload(blob, `${el.name.replace(/\.[^.]+$/, '')}_modified.png`)
         await saveDataUrlToLibrary(url, `${el.name.replace(/\.[^.]+$/, '')}_modified.png`, {

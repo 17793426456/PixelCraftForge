@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Checkbox, ColorPicker, InputNumber, message, Progress, Radio, Segmented, Slider, Space, Switch, Tooltip, Typography, Upload } from '@/lib/ui/antd-compat'
+import { Button, Checkbox, ColorPicker, InputNumber, message, Progress, Radio, Segmented, Slider, Space, Switch, Tooltip, Typography, Upload } from '@/components/app/wrapped-ui'
 import JSZip from 'jszip'
 import { superSplitByTransparent } from '../../lib/frameRonin/superSplitTransparent.js'
 import {
@@ -22,7 +22,8 @@ import {
   PlusOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
+import { resolveMediaUrl } from '../../lib/api/mediaUrl.js'
 import { useLanguage } from '../shims/useLanguage.js'
 import StashDropZone from '../shims/StashDropZone.jsx'
 import CropPreview from './CropPreview.tsx'
@@ -747,7 +748,7 @@ export default function SpriteSheetAdjust({ integratedSplit = false }: SpriteShe
       const zip = new JSZip()
       const base = file?.name.replace(/\.[^.]+$/, '').replace(/[^\w\-]+/g, '_') || 'frames'
       for (let i = 0; i < frameUrls.length; i++) {
-        const blob = await fetch(frameUrls[i]!).then((r) => r.blob())
+        const blob = await fetch(resolveMediaUrl(frameUrls[i]!)).then((r) => r.blob())
         zip.file(`frame_${String(i).padStart(3, '0')}.png`, blob)
       }
       const zblob = await zip.generateAsync({ type: 'blob' })
@@ -877,7 +878,7 @@ export default function SpriteSheetAdjust({ integratedSplit = false }: SpriteShe
     try {
     for (let i = 0; i < total; i++) {
       if (!selected[i]) {
-        const resp = await fetch(frameUrls[i]!)
+        const resp = await fetch(resolveMediaUrl(frameUrls[i]!))
         const blob = await resp.blob()
         newUrls.push(URL.createObjectURL(blob))
       } else {

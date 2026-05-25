@@ -5,8 +5,8 @@ import {
   MoonOutlined, QuestionCircleOutlined, ScissorOutlined, AppstoreOutlined,
   ThunderboltOutlined, ToolOutlined, VideoCameraOutlined, FormatPainterOutlined,
   EditOutlined,
-} from '@ant-design/icons'
-import { Collapse, Tabs, Tooltip, Button, message } from '@/lib/ui/antd-compat'
+} from '@/lib/icons/antd-lucide'
+import { Collapse, Tabs, Tooltip, Button, message } from '@/components/app/wrapped-ui'
 import GifFrameTool from './GifFrameTool.jsx'
 import SpriteSheetTool from './SpriteSheetTool.jsx'
 import GeminiWatermark from './GeminiWatermark.jsx'

@@ -1,5 +1,5 @@
 import { apiRequest } from './client.js'
-import { VIDEO_POLL_INTERVAL_MS, VIDEO_POLL_MAX_ATTEMPTS } from './config.js'
+import { getVideoPollIntervalMs, getVideoPollMaxAttempts } from './config.js'
 
 export function createTextToVideo(body) {
   return apiRequest('/api/video/generate', {
@@ -49,11 +49,11 @@ export function pollVideoTask(taskId, { onProgress, signal } = {}) {
           else reject(new Error(task.errorMessage || '视频生成失败'))
           return
         }
-        if (attempts >= VIDEO_POLL_MAX_ATTEMPTS) {
+        if (attempts >= getVideoPollMaxAttempts()) {
           reject(new Error('视频生成超时，请稍后在历史记录中查看'))
           return
         }
-        setTimeout(tick, VIDEO_POLL_INTERVAL_MS)
+        setTimeout(tick, getVideoPollIntervalMs())
       } catch (err) {
         reject(err)
       }

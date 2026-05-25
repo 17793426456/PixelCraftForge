@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Slider, Select, message, Upload, Collapse, Input, Space, ColorPicker, Switch, Modal,
-} from '@/lib/ui/antd-compat'
+} from '@/components/app/wrapped-ui'
 import {
   DownloadOutlined, ThunderboltOutlined, PlayCircleOutlined, PauseCircleOutlined,
   ReloadOutlined, SaveOutlined, FolderOpenOutlined, PlusOutlined, DeleteOutlined,
   EyeOutlined, EyeInvisibleOutlined, DragOutlined, ZoomInOutlined, ZoomOutOutlined,
   KeyOutlined, CodeOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
 import vfxPresets from '../../constants/features/vfx-presets.js'
