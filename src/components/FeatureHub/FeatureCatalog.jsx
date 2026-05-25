@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Row, Col } from 'antd'
-import { RightOutlined } from '@ant-design/icons'
+import { ChevronRight } from 'lucide-react'
 import { FEATURE_CATEGORIES, FEATURES } from '../../constants/features/index.js'
 import { buildFeaturePath } from '../../utils/featureNavigate.js'
 import FeatureBadge from './FeatureBadge.jsx'
@@ -18,28 +17,27 @@ export default function FeatureCatalog() {
         return (
           <section key={cat.id} className="feature-catalog-section">
             <h3 className="feature-catalog-cat">{cat.title}</h3>
-            <Row gutter={[12, 12]}>
+            <div className="feature-catalog-grid">
               {items.map((f) => (
-                <Col xs={24} sm={12} lg={8} key={f.id}>
-                  <article
-                    className="feature-catalog-card"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(buildFeaturePath(f))}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate(buildFeaturePath(f))}
-                  >
-                    <div className="feature-catalog-card-head">
-                      <strong>{f.title}</strong>
-                      <FeatureBadge status={f.status} />
-                    </div>
-                    <p>{f.summary}</p>
-                    <span className="feature-catalog-link">
-                      进入工具 <RightOutlined />
-                    </span>
-                  </article>
-                </Col>
+                <article
+                  key={f.id}
+                  className="feature-catalog-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(buildFeaturePath(f))}
+                  onKeyDown={(e) => e.key === 'Enter' && navigate(buildFeaturePath(f))}
+                >
+                  <div className="feature-catalog-card-head">
+                    <strong>{f.title}</strong>
+                    <FeatureBadge status={f.status} />
+                  </div>
+                  <p>{f.summary}</p>
+                  <span className="feature-catalog-link">
+                    进入工具 <ChevronRight className="inline size-3.5" />
+                  </span>
+                </article>
               ))}
-            </Row>
+            </div>
           </section>
         )
       })}

@@ -24,6 +24,7 @@ import {
 import animFpsLoop from '../../constants/features/anim-fps-loop.js'
 import animSequenceExport from '../../constants/features/anim-sequence-export.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
+import { sortFilesByName } from './pixelToolUtils.js'
 
 const { Dragger } = Upload
 const MAX_GIF_SIZE = 50 * 1024 * 1024
@@ -496,7 +497,7 @@ export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
       children: (
         <>
           <p className="pixel-tool-hint">上传多张 PNG/JPG，按文件名排序后合成 GIF。</p>
-          <Dragger multiple accept=".png,.jpg,.jpeg,.webp" beforeUpload={() => false} fileList={frameFiles.map((f, i) => ({ uid: String(i), name: f.name, originFileObj: f }))} onChange={({ fileList }) => setFrameFiles(fileList.map((item) => item.originFileObj).filter(Boolean))}>
+          <Dragger multiple accept=".png,.jpg,.jpeg,.webp" beforeUpload={() => false} fileList={frameFiles.map((f, i) => ({ uid: String(i), name: f.name, originFileObj: f }))} onChange={({ fileList }) => setFrameFiles(sortFilesByName(fileList.map((item) => item.originFileObj).filter(Boolean)))}>
             <p>拖拽或选择多张图片</p>
           </Dragger>
           <div style={{ marginTop: 12 }}>
@@ -532,7 +533,7 @@ export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
           <Dragger accept=".png,.jpg,.jpeg,.webp" maxCount={1} beforeUpload={(f) => { setGridFile(f); return false }} onRemove={() => setGridFile(null)}>
             <p>上传精灵图（拆分）</p>
           </Dragger>
-          <Dragger multiple accept=".png,.jpg,.jpeg,.webp" style={{ marginTop: 12 }} beforeUpload={() => false} onChange={({ fileList }) => setFrameFiles(fileList.map((item) => item.originFileObj).filter(Boolean))}>
+          <Dragger multiple accept=".png,.jpg,.jpeg,.webp" style={{ marginTop: 12 }} beforeUpload={() => false} onChange={({ fileList }) => setFrameFiles(sortFilesByName(fileList.map((item) => item.originFileObj).filter(Boolean)))}>
             <p>上传序列帧（合成精灵图）</p>
           </Dragger>
           <div className="pixel-tool-actions">
@@ -555,7 +556,7 @@ export default function GifFrameTool({ onStatusChange, onRegisterTemplate }) {
             <Radio.Button value={1}>左右</Radio.Button>
             <Radio.Button value={2}>叠画</Radio.Button>
           </Radio.Group>
-          <Dragger multiple accept=".png,.jpg,.jpeg,.webp" beforeUpload={() => false} onChange={({ fileList }) => setStitchFiles(fileList.map((item) => item.originFileObj).filter(Boolean))}>
+          <Dragger multiple accept=".png,.jpg,.jpeg,.webp" beforeUpload={() => false} onChange={({ fileList }) => setStitchFiles(sortFilesByName(fileList.map((item) => item.originFileObj).filter(Boolean)))}>
             <p>上传 2 张及以上图片</p>
           </Dragger>
           <div className="pixel-tool-actions">

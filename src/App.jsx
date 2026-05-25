@@ -1,24 +1,15 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { ConfigProvider, Spin, theme } from 'antd'
-import { MenuOutlined } from '@ant-design/icons'
+import { ConfigProvider, theme } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
+import { Menu } from 'lucide-react'
 import Sidebar from './components/Sidebar/Sidebar'
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext'
 import Home from './pages/Home/Home'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
+import { Spinner } from '@/components/ui/spinner'
 import './App.css'
-
-const ElementGenerate = lazy(() => import('./pages/ElementGenerate/ElementGenerate'))
-const ElementCustomize = lazy(() => import('./pages/ElementCustomize/ElementCustomize'))
-const VideoGenerate = lazy(() => import('./pages/VideoGenerate/VideoGenerate'))
-const VideoFrame = lazy(() => import('./pages/VideoFrame/VideoFrame'))
-const SoundEffect = lazy(() => import('./pages/SoundEffect/SoundEffect'))
-const PixelTools = lazy(() => import('./pages/PixelTools/PixelTools'))
-const LevelEditor = lazy(() => import('./pages/LevelEditor/LevelEditor'))
-const AssetLibrary = lazy(() => import('./pages/AssetLibrary/AssetLibrary'))
-const LayerEditor = lazy(() => import('./pages/LayerEditor/LayerEditor'))
-const ParticleStudio = lazy(() => import('./pages/ParticleStudio/ParticleStudio'))
-const UiKitStudio = lazy(() => import('./pages/UiKitStudio/UiKitStudio'))
 
 const antTheme = {
   algorithm: theme.darkAlgorithm,
@@ -32,34 +23,25 @@ const antTheme = {
     colorText: 'rgba(255,255,255,0.92)',
     colorTextSecondary: 'rgba(255,255,255,0.55)',
     borderRadius: 12,
-    borderRadiusLG: 14,
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",
-  },
-  components: {
-    Button: {
-      borderRadius: 10,
-      controlHeight: 36,
-      controlHeightLG: 44,
-    },
-    Card: {
-      borderRadiusLG: 12,
-    },
-    Tag: {
-      borderRadiusSM: 8,
-    },
-    Checkbox: {
-      colorPrimary: '#a855f7',
-    },
-    Slider: {
-      trackBg: 'rgba(255,255,255,0.12)',
-      trackHoverBg: 'rgba(255,255,255,0.18)',
-    },
   },
 }
 
+const ElementGenerate = lazy(() => import('./pages/ElementGenerate/ElementGenerate'))
+const ElementCustomize = lazy(() => import('./pages/ElementCustomize/ElementCustomize'))
+const VideoGenerate = lazy(() => import('./pages/VideoGenerate/VideoGenerate'))
+const VideoFrame = lazy(() => import('./pages/VideoFrame/VideoFrame'))
+const SoundEffect = lazy(() => import('./pages/SoundEffect/SoundEffect'))
+const PixelTools = lazy(() => import('./pages/PixelTools/PixelTools'))
+const LevelEditor = lazy(() => import('./pages/LevelEditor/LevelEditor'))
+const AssetLibrary = lazy(() => import('./pages/AssetLibrary/AssetLibrary'))
+const LayerEditor = lazy(() => import('./pages/LayerEditor/LayerEditor'))
+const ParticleStudio = lazy(() => import('./pages/ParticleStudio/ParticleStudio'))
+const UiKitStudio = lazy(() => import('./pages/UiKitStudio/UiKitStudio'))
+
 const PageLoading = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-    <Spin size="large" tip="加载中..." />
+  <div className="flex min-h-[400px] flex-col items-center justify-center gap-3 text-muted-foreground">
+    <Spinner className="size-8 text-primary" />
+    <span className="text-sm">加载中...</span>
   </div>
 )
 
@@ -86,7 +68,7 @@ function AppLayout() {
           onClick={toggle}
           aria-label="打开导航"
         >
-          <MenuOutlined />
+          <Menu className="size-5" />
         </button>
       )}
       <Sidebar />
@@ -119,9 +101,12 @@ function AppLayout() {
 function App() {
   return (
     <ConfigProvider theme={antTheme} locale={zhCN}>
-      <SidebarProvider>
-        <AppLayout />
-      </SidebarProvider>
+      <TooltipProvider delayDuration={200}>
+        <SidebarProvider>
+          <AppLayout />
+          <Toaster richColors closeButton />
+        </SidebarProvider>
+      </TooltipProvider>
     </ConfigProvider>
   )
 }

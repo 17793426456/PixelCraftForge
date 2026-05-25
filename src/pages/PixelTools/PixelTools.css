@@ -717,3 +717,80 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ===== 像素画笔编辑器 ===== */
+.pt-brush-editor {
+  padding: 0;
+}
+
+.pt-brush-toolbar {
+  margin-bottom: 16px;
+}
+
+.pt-brush-label {
+  font-size: 13px;
+  color: var(--jm-text-secondary);
+  white-space: nowrap;
+}
+
+.pt-brush-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 220px;
+}
+
+.pt-brush-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.pt-brush-swatch:hover {
+  transform: scale(1.08);
+}
+
+.pt-brush-swatch.is-active {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.35);
+}
+
+.pt-brush-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pt-brush-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: auto;
+}
+
+.pt-brush-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  cursor: crosshair;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.pt-brush-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--jm-text-muted);
+}

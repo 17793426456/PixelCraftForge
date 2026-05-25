@@ -1,50 +1,49 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Drawer, Tooltip } from 'antd'
 import {
-  HomeOutlined, HighlightOutlined, EditOutlined, VideoCameraOutlined,
-  SoundOutlined, AppstoreOutlined, PlayCircleOutlined,
-  BlockOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BgColorsOutlined,
-  BorderOutlined, ThunderboltOutlined,
-} from '@ant-design/icons'
+  Home, Sparkles, Pencil, Video, Volume2, LayoutGrid, PlayCircle,
+  Grid3x3, Palette, Zap, Square, PanelLeftClose, PanelLeft,
+} from 'lucide-react'
 import BrandName from '../Brand/BrandName'
 import { brandLogo, BRAND_NAME_FULL } from '../../constants/brand'
 import { useSidebar, SIDEBAR_WIDTH } from '../../contexts/SidebarContext'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import './Sidebar.css'
 
 const navGroups = [
   {
     title: '概览',
-    items: [{ key: '/', label: '首页', Icon: HomeOutlined }],
+    items: [{ key: '/', label: '首页', Icon: Home }],
   },
   {
     title: '图片素材',
     items: [
-      { key: '/generate', label: '图片生成', Icon: HighlightOutlined },
-      { key: '/customize', label: '元素改造', Icon: EditOutlined },
-      { key: '/pixel-tools', label: '像素工具箱', Icon: BlockOutlined },
-      { key: '/layer-editor', label: '图层编辑器', Icon: BgColorsOutlined },
-      { key: '/ui-studio', label: 'UI 工作室', Icon: AppstoreOutlined },
+      { key: '/generate', label: '图片生成', Icon: Sparkles },
+      { key: '/customize', label: '元素改造', Icon: Pencil },
+      { key: '/pixel-tools', label: '像素工具箱', Icon: Grid3x3 },
+      { key: '/layer-editor', label: '图层编辑器', Icon: Palette },
+      { key: '/ui-studio', label: 'UI 工作室', Icon: LayoutGrid },
     ],
   },
   {
     title: '动画 / 视频',
     items: [
-      { key: '/video-generate', label: '视频生成', Icon: PlayCircleOutlined },
-      { key: '/video-frame', label: 'AI 抽帧', Icon: VideoCameraOutlined },
-      { key: '/particle-studio', label: '粒子特效', Icon: ThunderboltOutlined },
+      { key: '/video-generate', label: '视频生成', Icon: PlayCircle },
+      { key: '/video-frame', label: 'AI 抽帧', Icon: Video },
+      { key: '/particle-studio', label: '粒子特效', Icon: Zap },
     ],
   },
   {
     title: '场景地图',
     items: [
-      { key: '/level-editor', label: '关卡编辑器', Icon: BorderOutlined },
+      { key: '/level-editor', label: '关卡编辑器', Icon: Square },
     ],
   },
   {
     title: '资源',
     items: [
-      { key: '/library', label: '素材仓库', Icon: AppstoreOutlined },
-      { key: '/sound-effect', label: '音效生成', Icon: SoundOutlined },
+      { key: '/library', label: '素材仓库', Icon: LayoutGrid },
+      { key: '/sound-effect', label: '音效生成', Icon: Volume2 },
     ],
   },
 ]
@@ -60,7 +59,7 @@ function NavLink({ item, active, collapsed, onNavigate }) {
       aria-current={active ? 'page' : undefined}
     >
       <span className="shell-icon">
-        <Icon />
+        <Icon className="size-[18px]" strokeWidth={1.75} />
       </span>
       <span className="shell-text">{label}</span>
     </button>
@@ -69,8 +68,9 @@ function NavLink({ item, active, collapsed, onNavigate }) {
   if (collapsed) {
     return (
       <li className={`shell-nav-link ${active ? 'active' : ''}`}>
-        <Tooltip title={label} placement="right" mouseEnterDelay={0.2}>
-          {link}
+        <Tooltip>
+          <TooltipTrigger asChild>{link}</TooltipTrigger>
+          <TooltipContent side="right">{label}</TooltipContent>
         </Tooltip>
       </li>
     )
@@ -139,9 +139,9 @@ function ShellSidebar({ collapsed, onToggle, onNavigate, pathname, isMobile = fa
           aria-label={isMobile ? '关闭导航' : (collapsed ? '展开侧边栏' : '收起侧边栏')}
         >
           {isMobile ? (
-            <MenuFoldOutlined />
+            <PanelLeftClose className="size-[18px]" />
           ) : (
-            collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+            collapsed ? <PanelLeft className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />
           )}
           <span className="shell-footer-toggle-text">
             {isMobile ? '关闭' : (collapsed ? '展开' : '收起')}
@@ -164,23 +164,17 @@ export default function Sidebar() {
 
   if (isMobile) {
     return (
-      <Drawer
-        placement="left"
-        open={mobileOpen}
-        onClose={closeMobile}
-        closable={false}
-        width={Math.min(SIDEBAR_WIDTH, typeof window !== 'undefined' ? window.innerWidth * 0.85 : SIDEBAR_WIDTH)}
-        className="shell-drawer"
-        styles={{ body: { padding: 0 } }}
-      >
-        <ShellSidebar
-          collapsed={false}
-          isMobile
-          onToggle={closeMobile}
-          onNavigate={handleNavigate}
-          pathname={location.pathname}
-        />
-      </Drawer>
+      <Sheet open={mobileOpen} onOpenChange={(open) => !open && closeMobile()}>
+        <SheetContent side="left" className="shell-drawer w-[min(250px,85vw)] border-r border-border bg-[#111116] p-0">
+          <ShellSidebar
+            collapsed={false}
+            isMobile
+            onToggle={closeMobile}
+            onNavigate={handleNavigate}
+            pathname={location.pathname}
+          />
+        </SheetContent>
+      </Sheet>
     )
   }
 

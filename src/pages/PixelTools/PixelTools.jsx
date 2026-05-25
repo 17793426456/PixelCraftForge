@@ -4,6 +4,7 @@ import {
   BlockOutlined, BgColorsOutlined, ClearOutlined, FileGifOutlined,
   MoonOutlined, QuestionCircleOutlined, ScissorOutlined, AppstoreOutlined,
   ThunderboltOutlined, ToolOutlined, VideoCameraOutlined, FormatPainterOutlined,
+  EditOutlined,
 } from '@ant-design/icons'
 import { Collapse, Tabs, Tooltip, Button, message } from 'antd'
 import GifFrameTool from './GifFrameTool.jsx'
@@ -12,6 +13,7 @@ import GeminiWatermark from './GeminiWatermark.jsx'
 import ImageChromaMatte from './ImageChromaMatte.jsx'
 import ImagePixelateTool from './ImagePixelateTool.jsx'
 import ImageTransformTool from './ImageTransformTool.jsx'
+import PixelBrushEditor from './PixelBrushEditor.jsx'
 import EfficiencyHub from '../../fr-port/components/EfficiencyHub.jsx'
 import SheetProTool from '../../fr-port/components/SheetProTool.jsx'
 import assistEngineExport from '../../constants/features/assist-engine-export.js'
@@ -19,6 +21,11 @@ import { applyFeatureTab } from '../../utils/featureNavigate.js'
 import './PixelTools.css'
 
 const TIP_ITEMS = [
+  {
+    Icon: EditOutlined,
+    title: '像素画笔编辑器',
+    desc: '逐像素绘制、填充与吸色，适合图标、道具与精灵草图创作',
+  },
   {
     Icon: FileGifOutlined,
     title: 'GIF 转序列帧',
@@ -37,6 +44,13 @@ const TIP_ITEMS = [
 ]
 
 const TOOL_CARDS = [
+  {
+    key: 'brush',
+    Icon: EditOutlined,
+    label: '画笔',
+    title: '像素画笔编辑器',
+    desc: '铅笔、填充、吸色与网格，导出 PNG 或入库',
+  },
   {
     key: 'gif',
     Icon: FileGifOutlined,
@@ -72,7 +86,40 @@ const TOOL_CARDS = [
     title: 'Gemini AI 去水印',
     desc: '智能识别并去除图片水印区域',
   },
+  {
+    key: 'transform',
+    Icon: ToolOutlined,
+    label: '变换',
+    title: '贴图变换',
+    desc: '旋转、缩放、翻转与格式转换',
+  },
+  {
+    key: 'efficiency',
+    Icon: ThunderboltOutlined,
+    label: '效率',
+    title: '效率工具',
+    desc: '自定义缩放、切片等批量处理',
+  },
+  {
+    key: 'sheetPro',
+    Icon: BlockOutlined,
+    label: 'Pro',
+    title: '精灵表 Pro',
+    desc: '高级精灵表编辑与导出',
+  },
 ]
+
+const TAB_KEY_MAP = {
+  brush: 'brush',
+  gif: 'gif',
+  sheet: 'sheet',
+  matte: 'matte',
+  pixelate: 'pixelate',
+  watermark: 'watermark',
+  transform: 'transform',
+  efficiency: 'efficiency',
+  sheetPro: 'sheetPro',
+}
 
 const PROCESS_NOTES = [
   '所有处理均在浏览器本地完成，文件不会上传至服务器',
@@ -88,6 +135,11 @@ const QUICK_TEMPLATES = [
 ]
 
 const USE_CASES = [
+  {
+    Icon: EditOutlined,
+    title: '像素绘制',
+    desc: '画笔编辑器逐格创作图标与道具，支持导出 PNG 与存入素材仓库',
+  },
   {
     Icon: VideoCameraOutlined,
     title: '游戏开发',
@@ -131,7 +183,7 @@ function statusTone(status) {
 
 export default function PixelTools() {
   const [searchParams] = useSearchParams()
-  const [activeTab, setActiveTab] = useState('gif')
+  const [activeTab, setActiveTab] = useState('brush')
 
   useEffect(() => {
     applyFeatureTab(searchParams, setActiveTab)
@@ -152,6 +204,7 @@ export default function PixelTools() {
   }
 
   const TAB_ITEMS = [
+    { key: 'brush', label: '像素画笔', children: <PixelBrushEditor /> },
     {
       key: 'gif',
       label: 'GIF ↔ 序列帧',
@@ -163,8 +216,8 @@ export default function PixelTools() {
       ),
     },
     { key: 'sheet', label: '精灵图工具', children: <SpriteSheetTool /> },
-    { key: 'efficiency', label: '效率工具', children: <EfficiencyHub /> },
-    { key: 'sheetPro', label: '精灵表 Pro', children: <SheetProTool /> },
+    { key: 'efficiency', label: '效率工具', children: <div className="pixel-tool-panel"><EfficiencyHub /></div> },
+    { key: 'sheetPro', label: '精灵表 Pro', children: <div className="pixel-tool-panel"><SheetProTool /></div> },
     { key: 'transform', label: '贴图变换', children: <ImageTransformTool /> },
     { key: 'pixelate', label: '图片像素化', children: <ImagePixelateTool /> },
     { key: 'watermark', label: 'Gemini 去水印', children: <GeminiWatermark /> },
@@ -202,7 +255,7 @@ export default function PixelTools() {
             </div>
           </div>
           <p className="atelier-subtitle pt-slogan">
-            浏览器端一站式像素素材处理工具，所有操作本地完成，安全高效
+            浏览器端一站式像素素材处理工具，含画笔编辑器与 GIF / 精灵图工具，所有操作本地完成
           </p>
         </header>
 
@@ -214,6 +267,7 @@ export default function PixelTools() {
                 size="large"
                 activeKey={activeTab}
                 onChange={setActiveTab}
+                destroyInactiveTabPane={false}
                 items={TAB_ITEMS}
               />
             </div>
@@ -248,8 +302,7 @@ export default function PixelTools() {
                       type="button"
                       className="pt-tool-card"
                       onClick={() => {
-                        const map = { gif: 'gif', sheet: 'sheet', matte: 'matte', pixelate: 'pixelate', watermark: 'watermark' }
-                        if (map[key]) setActiveTab(map[key])
+                        if (TAB_KEY_MAP[key]) setActiveTab(TAB_KEY_MAP[key])
                       }}
                     >
                       <Icon className="pt-tool-card-icon" />

@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Button, Checkbox, InputNumber, message, Radio, Space, Typography, Upload } from 'antd'
-import { ExpandOutlined } from '@ant-design/icons'
-import type { UploadFile } from 'antd'
+import { Expand } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
+import FileDropzone from '@/components/app/FileDropzone'
+import NumberInput from '@/components/app/NumberInput'
+import Stack from '@/components/app/Stack'
+import AppSegmented from '@/components/app/AppSegmented'
+import { message } from '@/lib/ui/notify'
 import { useLanguage } from '../shims/useLanguage.js'
 import ImageFineEditor from '../shims/NoopFineEditor.jsx'
 import StashableImage from '../shims/StashableImage.jsx'
@@ -14,9 +21,6 @@ import {
   getTopLeftPixelColor,
   resizeImageToBlob,
 } from '../../lib/frameRonin/imageUtils.js'
-
-const { Dragger } = Upload
-const { Text } = Typography
 
 const IMAGE_ACCEPT = ['.png', '.jpg', '.jpeg', '.webp']
 

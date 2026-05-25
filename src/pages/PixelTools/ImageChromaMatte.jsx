@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Button, ColorPicker, Segmented, Slider, Space, Upload, message } from 'antd'
-import { DownloadOutlined, BgColorsOutlined } from '@ant-design/icons'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Download, Palette, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
+import FileDropzone from '@/components/app/FileDropzone'
+import ColorPickerField from '@/components/app/ColorPickerField'
+import AppSegmented from '@/components/app/AppSegmented'
+import Stack from '@/components/app/Stack'
+import { message } from '@/lib/ui/notify'
 import { canvasToBlob, loadImageFromFile, triggerDownload } from '../../lib/frameRonin/gifUtils.js'
 import imageLayerEdit from '../../constants/features/image-layer-edit.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
-
-const { Dragger } = Upload
 
 const PRESETS = {
   green: [0, 255, 0],
@@ -74,17 +78,19 @@ export default function ImageChromaMatte() {
   const [smoothness, setSmoothness] = useState(40)
   const [spill, setSpill] = useState(50)
   const [loading, setLoading] = useState(false)
+  const autoPreviewRef = useRef(null)
 
-  const keyColor = preset === 'custom'
-    ? (() => {
+  const resolveKeyColor = useCallback(() => {
+    if (preset === 'custom') {
       const hex = customColor.replace('#', '')
       return [
         parseInt(hex.slice(0, 2), 16),
         parseInt(hex.slice(2, 4), 16),
         parseInt(hex.slice(4, 6), 16),
       ]
-    })()
-    : PRESETS[preset]
+    }
+    return PRESETS[preset]
+  }, [preset, customColor])
 
   useEffect(() => {
     if (!file) {
@@ -104,40 +110,60 @@ export default function ImageChromaMatte() {
     if (resultUrl) URL.revokeObjectURL(resultUrl)
   }, [resultUrl])
 
-  const handleProcess = async () => {
+  const handleProcess = useCallback(async (silent = false) => {
     if (!file) {
-      message.warning('请先上传图片')
+      if (!silent) message.warning('请先上传图片')
       return
     }
     setLoading(true)
     try {
       const img = await loadImageFromFile(file)
-      const canvas = chromaKeyCanvas(img, keyColor, tolerance, smoothness, spill)
+      const canvas = chromaKeyCanvas(img, resolveKeyColor(), tolerance, smoothness, spill)
       const blob = await canvasToBlob(canvas)
       setResultUrl((old) => {
         if (old) URL.revokeObjectURL(old)
         return URL.createObjectURL(blob)
       })
-      message.success('抠图完成')
+      if (!silent) message.success('抠图完成')
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '抠图失败')
+      if (!silent) message.error(error instanceof Error ? error.message : '抠图失败')
     } finally {
       setLoading(false)
     }
-  }
+  }, [file, resolveKeyColor, tolerance, smoothness, spill])
+
+  useEffect(() => {
+    if (!file) return undefined
+    if (autoPreviewRef.current) clearTimeout(autoPreviewRef.current)
+    autoPreviewRef.current = setTimeout(() => {
+      void handleProcess(true)
+    }, 400)
+    return () => {
+      if (autoPreviewRef.current) clearTimeout(autoPreviewRef.current)
+    }
+  }, [file, tolerance, smoothness, spill, preset, customColor, handleProcess])
 
   return (
     <div className="pixel-tool-panel">
       <FeatureCallout feature={imageLayerEdit} />
-      <p className="pixel-tool-hint">绿幕/蓝幕色度键抠图，支持容差、边缘羽化与溢色抑制，导出透明 PNG。</p>
-      <Dragger accept=".png,.jpg,.jpeg,.webp" maxCount={1} beforeUpload={(f) => { setFile(f); return false }} onRemove={() => setFile(null)}>
-        <p><BgColorsOutlined /> 上传带纯色背景的图片</p>
-      </Dragger>
+      <p className="pixel-tool-hint">绿幕/蓝幕色度键抠图；上传后调节参数将自动预览，也可手动重新抠图。</p>
+      <FileDropzone
+        accept=".png,.jpg,.jpeg,.webp"
+        maxCount={1}
+        title="上传带纯色背景的图片"
+        onFiles={(files) => setFile(files[0] ?? null)}
+      />
+      {file && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          <Palette className="mr-1 inline size-4" />
+          {file.name}
+        </p>
+      )}
 
       {file && (
         <>
-          <Space direction="vertical" style={{ width: '100%', marginTop: 16 }} size="middle">
-            <Segmented
+          <Stack direction="vertical" style={{ width: '100%', marginTop: 16 }} size="middle">
+            <AppSegmented
               value={preset}
               onChange={setPreset}
               options={[
@@ -147,37 +173,39 @@ export default function ImageChromaMatte() {
               ]}
             />
             {preset === 'custom' && (
-              <Space>
+              <Stack align="center">
                 <span style={{ color: 'var(--color-text-secondary)' }}>取色</span>
-                <ColorPicker value={customColor} onChange={(_, hex) => setCustomColor(hex)} />
-              </Space>
+                <ColorPickerField value={customColor} onChange={setCustomColor} />
+              </Stack>
             )}
             <div>
               <span>容差 {tolerance}%</span>
-              <Slider min={5} max={80} value={tolerance} onChange={setTolerance} />
+              <Slider min={5} max={80} value={[tolerance]} onValueChange={([v]) => setTolerance(v)} />
             </div>
             <div>
               <span>羽化 {smoothness}%</span>
-              <Slider min={0} max={100} value={smoothness} onChange={setSmoothness} />
+              <Slider min={0} max={100} value={[smoothness]} onValueChange={([v]) => setSmoothness(v)} />
             </div>
             <div>
               <span>溢色抑制 {spill}%</span>
-              <Slider min={0} max={100} value={spill} onChange={setSpill} />
+              <Slider min={0} max={100} value={[spill]} onValueChange={([v]) => setSpill(v)} />
             </div>
-          </Space>
+          </Stack>
 
           <div className="pixel-tool-actions">
-            <Button type="primary" loading={loading} onClick={() => { void handleProcess() }}>
-              执行抠图
+            <Button disabled={loading} onClick={() => { void handleProcess() }}>
+              {loading && <Loader2 className="animate-spin" />}
+              {resultUrl ? '重新抠图' : '执行抠图'}
             </Button>
             {resultUrl && (
               <Button
-                icon={<DownloadOutlined />}
+                variant="outline"
                 onClick={async () => {
                   const blob = await fetch(resultUrl).then((r) => r.blob())
                   triggerDownload(blob, `${file.name.replace(/\.[^.]+$/, '')}-matte.png`)
                 }}
               >
+                <Download />
                 下载 PNG
               </Button>
             )}

@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Upload, Card, Row, Col, message, Space, Input, Tag } from 'antd'
 import {
-  UploadOutlined, ThunderboltOutlined, DownloadOutlined, FolderAddOutlined, ExportOutlined,
-  HighlightOutlined, EditOutlined, VideoCameraOutlined, SoundOutlined, AppstoreOutlined,
-  RocketOutlined, BgColorsOutlined, FileImageOutlined, ApiOutlined, PlayCircleOutlined,
-  RightOutlined, BlockOutlined, BorderOutlined,
-} from '@ant-design/icons'
+  Upload, Zap, Download, FolderPlus, ExternalLink, Sparkles, Pencil, Video, Volume2,
+  LayoutGrid, Rocket, Palette, Image, Plug, PlayCircle, ChevronRight, Blocks, Square,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { message } from '@/lib/ui/notify'
+import FileDropzone from '@/components/app/FileDropzone'
+import Stack from '@/components/app/Stack'
 import IconFont from '../../components/IconFont/IconFont'
 import PlanetAnimation from '../../components/PlanetAnimation/PlanetAnimation'
 import BrandName from '../../components/Brand/BrandName'
@@ -22,29 +26,27 @@ import { generateImageToImage, generateTextToImage } from '../../lib/api/element
 import { resolveMediaUrl, urlToBlob } from '../../lib/api/mediaUrl.js'
 import './Home.css'
 
-const { TextArea } = Input
-
 const styleOptions = ['像素风', '国风二次元', 'Q版卡通', '复古街机', '暗黑写实', '赛博朋克']
 const sizeOptions = ['32px', '64px', '128px', '256px', '512px']
 const categoryOptions = ['角色类', '道具物品类', '场景环境类', 'UI交互类', '特效动作类', '地图瓦片类']
 
 const stats = [
-  { title: '支持素材类型', value: 6, suffix: '类', icon: <FileImageOutlined /> },
-  { title: '内置画风', value: 12, suffix: '种', icon: <BgColorsOutlined /> },
-  { title: '可导出格式', value: 8, suffix: '种', icon: <ApiOutlined /> },
-  { title: '一站式模块', value: 7, suffix: '大', icon: <RocketOutlined /> },
-  { title: '子功能点', value: 28, suffix: '项', icon: <ApiOutlined /> },
+  { title: '支持素材类型', value: 6, suffix: '类', icon: Image },
+  { title: '内置画风', value: 12, suffix: '种', icon: Palette },
+  { title: '可导出格式', value: 8, suffix: '种', icon: Plug },
+  { title: '一站式模块', value: 7, suffix: '大', icon: Rocket },
+  { title: '子功能点', value: 28, suffix: '项', icon: Plug },
 ]
 
 const modules = [
-  { path: '/generate', icon: <HighlightOutlined />, title: '元素智能生成', desc: '文生图 / 图生图 / 二次修改' },
-  { path: '/video-generate', icon: <PlayCircleOutlined />, title: '游戏视频生成', desc: '文生视频 / 图生视频 / 视频延长' },
-  { path: '/customize', icon: <EditOutlined />, title: '元素自定义改造', desc: '文字指令修改 6 大属性' },
-  { path: '/video-frame', icon: <VideoCameraOutlined />, title: 'AI 视频抽帧', desc: '关键帧抽取与精灵图集' },
-  { path: '/pixel-tools', icon: <BlockOutlined />, title: '像素工具箱', desc: 'GIF·精灵图·像素化·效率工具' },
-  { path: '/sound-effect', icon: <SoundOutlined />, title: '专属音效生成', desc: '4 大分类音效库' },
-  { path: '/level-editor', icon: <BorderOutlined />, title: '2D 关卡编辑器', desc: '文字描述 + 拖拽编辑，导出 JSON' },
-  { path: '/library', icon: <AppstoreOutlined />, title: '素材仓库', desc: '功能 + 材质双重分类' },
+  { path: '/generate', icon: Sparkles, title: '元素智能生成', desc: '文生图 / 图生图 / 二次修改' },
+  { path: '/video-generate', icon: PlayCircle, title: '游戏视频生成', desc: '文生视频 / 图生视频 / 视频延长' },
+  { path: '/customize', icon: Pencil, title: '元素自定义改造', desc: '文字指令修改 6 大属性' },
+  { path: '/video-frame', icon: Video, title: 'AI 视频抽帧', desc: '关键帧抽取与精灵图集' },
+  { path: '/pixel-tools', icon: Blocks, title: '像素工具箱', desc: '画笔·GIF·精灵图·像素化' },
+  { path: '/sound-effect', icon: Volume2, title: '专属音效生成', desc: '4 大分类音效库' },
+  { path: '/level-editor', icon: Square, title: '2D 关卡编辑器', desc: '文字描述 + 拖拽编辑，导出 JSON' },
+  { path: '/library', icon: LayoutGrid, title: '素材仓库', desc: '功能 + 材质双重分类' },
 ]
 
 export default function Home() {
@@ -94,8 +96,8 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const handleImageUpload = (info) => {
-    const file = info.file.originFileObj || info.file
+  const handleImageUpload = (files) => {
+    const file = files?.[0]
     if (file) {
       setUploadedImage(URL.createObjectURL(file))
       setUploadedImageFile(file)
@@ -223,11 +225,11 @@ export default function Home() {
           </p>
           <div className="hero-actions">
             <button type="button" className="btn-primary" onClick={() => navigate('/generate')}>
-              <ThunderboltOutlined />
+              <Zap className="size-4" />
               立即开始创作
             </button>
             <button type="button" className="btn-secondary btn-secondary--glass" onClick={() => navigate('/library')}>
-              <AppstoreOutlined />
+              <LayoutGrid className="size-4" />
               浏览素材仓库
             </button>
           </div>
@@ -237,22 +239,23 @@ export default function Home() {
 
       <div className="home-body">
       <ScrollReveal as="section" className="home-section" variant="up">
-        <Row gutter={[14, 14]} className="stats-row">
-          {stats.map((s, i) => (
-            <Col xs={12} sm={6} key={s.title}>
-              <ScrollReveal variant="up" delay={i * 90} className="stat-card-reveal">
-              <div className="stat-card">
-                <div className="stat-icon">{s.icon}</div>
-                <p className="stat-label">{s.title}</p>
-                <p className="stat-value">
-                  <span className="stat-num">{s.value}</span>
-                  <span className="stat-suffix">{s.suffix}</span>
-                </p>
-              </div>
+        <div className="stats-row grid grid-cols-2 sm:grid-cols-4 gap-[14px]">
+          {stats.map((s, i) => {
+            const StatIcon = s.icon
+            return (
+              <ScrollReveal key={s.title} variant="up" delay={i * 90} className="stat-card-reveal">
+                <div className="stat-card">
+                  <div className="stat-icon"><StatIcon className="size-5" /></div>
+                  <p className="stat-label">{s.title}</p>
+                  <p className="stat-value">
+                    <span className="stat-num">{s.value}</span>
+                    <span className="stat-suffix">{s.suffix}</span>
+                  </p>
+                </div>
               </ScrollReveal>
-            </Col>
-          ))}
-        </Row>
+            )
+          })}
+        </div>
       </ScrollReveal>
 
       <section className="home-section">
@@ -268,22 +271,29 @@ export default function Home() {
           <h2 className="section-heading">快捷入口</h2>
           <p className="section-caption">覆盖素材生成 → 入库管理全流程</p>
         </ScrollReveal>
-        <Row gutter={[14, 14]} className="modules-row">
-          {modules.map((m, i) => (
-            <Col xs={24} sm={12} lg={8} xl={6} key={m.path}>
-              <ScrollReveal variant="up" delay={(i % 4) * 80}>
-              <article className="module-card" onClick={() => navigate(m.path)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate(m.path)}>
-                <div className="module-icon">{m.icon}</div>
-                <h3 className="module-title">{m.title}</h3>
-                <p className="module-desc">{m.desc}</p>
-                <span className="module-link">
-                  立即使用 <RightOutlined />
-                </span>
-              </article>
+        <div className="modules-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[14px]">
+          {modules.map((m, i) => {
+            const ModIcon = m.icon
+            return (
+              <ScrollReveal key={m.path} variant="up" delay={(i % 4) * 80}>
+                <article
+                  className="module-card"
+                  onClick={() => navigate(m.path)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && navigate(m.path)}
+                >
+                  <div className="module-icon"><ModIcon className="size-6" /></div>
+                  <h3 className="module-title">{m.title}</h3>
+                  <p className="module-desc">{m.desc}</p>
+                  <span className="module-link">
+                    立即使用 <ChevronRight className="size-3.5 inline" />
+                  </span>
+                </article>
               </ScrollReveal>
-            </Col>
-          ))}
-        </Row>
+            )
+          })}
+        </div>
       </section>
 
       <section className="home-section">
@@ -295,106 +305,138 @@ export default function Home() {
           <p className="section-caption">输入描述或上传参考图，AI 智能生成素材</p>
         </ScrollReveal>
 
-        <Row gutter={24}>
-          <Col flex="1">
-            <ScrollReveal variant="up" delay={120}>
-            <Card bordered={false} className="surface-card work-card">
-              <TextArea
-                rows={4}
-                placeholder="描述游戏元素，如：像素风骑士，手持火焰剑，站立姿态..."
-                value={prompt}
-                onChange={e => setPrompt(e.target.value)}
-                className="work-textarea"
-              />
-              <Upload accept="image/*" showUploadList={false} beforeUpload={() => false} onChange={handleImageUpload}>
-                <Button icon={<UploadOutlined />} className="btn-ghost">{uploadedImage ? '更换参考图' : '上传参考图'}</Button>
-              </Upload>
-              {uploadedImage && <img src={uploadedImage} alt="参考" className="preview-img" />}
-              <div className="options-section">
-                <div className="option-row">
-                  <span className="option-label">画风</span>
-                  <Space wrap size={[6, 6]}>
-                    {styleOptions.map(s => (
-                      <Tag key={s} className={`jm-tag ${selectedStyle === s ? 'jm-tag--active' : ''}`} onClick={() => setSelectedStyle(s)}>{s}</Tag>
-                    ))}
-                  </Space>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+          <ScrollReveal variant="up" delay={120}>
+            <Card className="surface-card work-card border-0 shadow-none py-0">
+              <CardContent className="px-0 pt-0">
+                <Textarea
+                  rows={4}
+                  placeholder="描述游戏元素，如：像素风骑士，手持火焰剑，站立姿态..."
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="work-textarea"
+                />
+                <FileDropzone
+                  accept="image/*"
+                  maxCount={1}
+                  className="mt-3"
+                  title={uploadedImage ? '点击更换参考图' : '上传参考图'}
+                  onFiles={handleImageUpload}
+                />
+                {uploadedImage && <img src={uploadedImage} alt="参考" className="preview-img" />}
+                <div className="options-section">
+                  <div className="option-row">
+                    <span className="option-label">画风</span>
+                    <Stack wrap size="small">
+                      {styleOptions.map((s) => (
+                        <Badge
+                          key={s}
+                          variant="outline"
+                          className={`jm-tag cursor-pointer ${selectedStyle === s ? 'jm-tag--active' : ''}`}
+                          onClick={() => setSelectedStyle(s)}
+                        >
+                          {s}
+                        </Badge>
+                      ))}
+                    </Stack>
+                  </div>
+                  <div className="option-row">
+                    <span className="option-label">尺寸</span>
+                    <Stack wrap size="small">
+                      {sizeOptions.map((s) => (
+                        <Badge
+                          key={s}
+                          variant="outline"
+                          className={`jm-tag cursor-pointer ${selectedSize === s ? 'jm-tag--active' : ''}`}
+                          onClick={() => setSelectedSize(s)}
+                        >
+                          {s}
+                        </Badge>
+                      ))}
+                    </Stack>
+                  </div>
+                  <div className="option-row">
+                    <span className="option-label">类型</span>
+                    <Stack wrap size="small">
+                      {categoryOptions.map((c) => (
+                        <Badge
+                          key={c}
+                          variant="outline"
+                          className={`jm-tag cursor-pointer ${selectedCategory === c ? 'jm-tag--active' : ''}`}
+                          onClick={() => setSelectedCategory(c)}
+                        >
+                          {c}
+                        </Badge>
+                      ))}
+                    </Stack>
+                  </div>
                 </div>
-                <div className="option-row">
-                  <span className="option-label">尺寸</span>
-                  <Space wrap size={[6, 6]}>
-                    {sizeOptions.map(s => (
-                      <Tag key={s} className={`jm-tag ${selectedSize === s ? 'jm-tag--active' : ''}`} onClick={() => setSelectedSize(s)}>{s}</Tag>
-                    ))}
-                  </Space>
-                </div>
-                <div className="option-row">
-                  <span className="option-label">类型</span>
-                  <Space wrap size={[6, 6]}>
-                    {categoryOptions.map(c => (
-                      <Tag key={c} className={`jm-tag ${selectedCategory === c ? 'jm-tag--active' : ''}`} onClick={() => setSelectedCategory(c)}>{c}</Tag>
-                    ))}
-                  </Space>
-                </div>
-              </div>
-              <button type="button" className="btn-primary btn-primary--block" disabled={isGenerating} onClick={handleGenerate}>
-                <ThunderboltOutlined />
-                {isGenerating ? '生成中...' : '智能生成素材'}
-              </button>
+                <button type="button" className="btn-primary btn-primary--block" disabled={isGenerating} onClick={handleGenerate}>
+                  <Zap className="size-4" />
+                  {isGenerating ? '生成中...' : '智能生成素材'}
+                </button>
+              </CardContent>
             </Card>
-            </ScrollReveal>
-          </Col>
+          </ScrollReveal>
 
           {analysisResult && (
-            <Col flex="280px">
-              <ScrollReveal variant="right" delay={200}>
-              <Card
-                title={<span><IconFont type="icon-search" className="card-title-icon" /> AI 智能解析</span>}
-                bordered={false}
-                className="surface-card analysis-card"
-              >
-                <p><strong>元素类型：</strong>{analysisResult.type}</p>
-                <p><strong>画风识别：</strong>{analysisResult.style}</p>
-                <p><strong>材质构成：</strong>{analysisResult.material}</p>
-                <p><strong>优化建议：</strong>{analysisResult.suggestion}</p>
+            <ScrollReveal variant="right" delay={200}>
+              <Card className="surface-card analysis-card border-0 shadow-none">
+                <CardHeader>
+                  <CardTitle>
+                    <IconFont type="icon-search" className="card-title-icon" /> AI 智能解析
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p><strong>元素类型：</strong>{analysisResult.type}</p>
+                  <p><strong>画风识别：</strong>{analysisResult.style}</p>
+                  <p><strong>材质构成：</strong>{analysisResult.material}</p>
+                  <p><strong>优化建议：</strong>{analysisResult.suggestion}</p>
+                </CardContent>
               </Card>
-              </ScrollReveal>
-            </Col>
+            </ScrollReveal>
           )}
-        </Row>
+        </div>
 
         {generatedAssets.length > 0 && (
           <ScrollReveal variant="up" delay={80}>
-          <Card
-            title={<span><IconFont type="icon-result" className="card-title-icon" /> 生成结果</span>}
-            bordered={false}
-            className="surface-card results-card"
-            extra={
-              <Space>
-                <Button icon={<DownloadOutlined />} size="small" className="btn-ghost" onClick={handleBatchDownload}>批量下载</Button>
-                <Button icon={<FolderAddOutlined />} size="small" className="btn-ghost" onClick={handleSaveToLibrary}>一键入库</Button>
-                <Button icon={<ExportOutlined />} size="small" className="btn-ghost" onClick={() => navigate('/library')}>打开仓库</Button>
-              </Space>
-            }
-          >
-            <Row gutter={[16, 16]}>
-              {generatedAssets.map(asset => (
-                <Col key={asset.id} xs={12} sm={8} md={6} lg={4}>
-                  <Card
-                    hoverable
-                    size="small"
-                    className="result-item-card"
-                    cover={
-                      asset.previewUrl
-                        ? <img src={asset.previewUrl} alt={asset.name} className="asset-preview-img" />
-                        : <div className="asset-preview"><IconFont type="icon-game" /></div>
-                    }
-                  >
-                    <Card.Meta title={asset.name} description={`${asset.style} · ${asset.size}`} />
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          </Card>
+            <Card className="surface-card results-card border-0 shadow-none mt-6">
+              <CardHeader>
+                <CardTitle>
+                  <IconFont type="icon-result" className="card-title-icon" /> 生成结果
+                </CardTitle>
+                <CardAction>
+                  <Stack size="small">
+                    <Button variant="ghost" size="sm" onClick={handleBatchDownload}>
+                      <Download className="size-4" /> 批量下载
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleSaveToLibrary}>
+                      <FolderPlus className="size-4" /> 一键入库
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => navigate('/library')}>
+                      <ExternalLink className="size-4" /> 打开仓库
+                    </Button>
+                  </Stack>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {generatedAssets.map((asset) => (
+                    <Card key={asset.id} className="result-item-card overflow-hidden py-0 gap-0">
+                      {asset.previewUrl ? (
+                        <img src={asset.previewUrl} alt={asset.name} className="asset-preview-img w-full" />
+                      ) : (
+                        <div className="asset-preview"><IconFont type="icon-game" /></div>
+                      )}
+                      <CardContent className="p-3">
+                        <p className="font-medium text-sm">{asset.name}</p>
+                        <CardDescription>{`${asset.style} · ${asset.size}`}</CardDescription>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </ScrollReveal>
         )}
       </section>
