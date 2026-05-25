@@ -7,9 +7,10 @@ spring:
       max-file-size: 200MB
       max-request-size: 200MB
   datasource:
-    url: jdbc:mysql://localhost:3307/pixel_craft_forge?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
-    username: pixelcraft
-    password: pixelcraft
+    # 腾讯云 MySQL（默认内网地址，与 CVM 同 VPC 时使用）；账号密码通过环境变量或 application-local.yml 配置
+    url: jdbc:mysql://${DB_HOST:172.27.0.14}:${DB_PORT:3306}/${DB_NAME:pixel_craft_forge}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
