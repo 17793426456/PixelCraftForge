@@ -11,9 +11,13 @@ import IconFont from '../../components/IconFont/IconFont'
 import uiDrawComponents from '../../constants/features/ui-draw-components.js'
 import uiStateSprites from '../../constants/features/ui-state-sprites.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
-import { createPlaceholderPngBlob, placeholderBlobToDataUrl, ratioToDimensions } from '../../lib/assets/placeholderAsset.js'
+import { ratioToDimensions } from '../../lib/assets/placeholderAsset.js'
 import { saveBlobToLibrary } from '../../lib/assets/saveToLibrary.js'
 import { zipBlobs } from '../../lib/assets/imageExport.js'
+import { ApiError } from '../../lib/api/client.js'
+import { resolveAssetCategory } from '../../lib/api/assetCategory.js'
+import { generateImageToImage, generateTextToImage } from '../../lib/api/elementApi.js'
+import { resolveMediaUrl, urlToBlob } from '../../lib/api/mediaUrl.js'
 import './ElementGenerate.css'
 
 const UI_STATE_PRESETS = ['normal', 'hover', 'disabled']
@@ -64,7 +68,9 @@ export default function ElementGenerate() {
   const [results, setResults] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [refImageUrl, setRefImageUrl] = useState(null)
+  const [refImageFile, setRefImageFile] = useState(null)
   const [modifyImageUrl, setModifyImageUrl] = useState(null)
+  const [modifyImageFile, setModifyImageFile] = useState(null)
   const [modifyPrompt, setModifyPrompt] = useState('')
   const [filterTime, setFilterTime] = useState('全部时间')
   const [filterType, setFilterType] = useState('全部类型')
@@ -99,51 +105,67 @@ export default function ElementGenerate() {
       message.warning('请输入描述后再生成')
       return
     }
-    if (mode === '图生图' && !refImageUrl) {
+    if (mode === '图生图' && !refImageFile) {
       message.warning('请上传参考图')
       return
     }
-    if (mode === '二次修改' && (!modifyImageUrl || !modifyPrompt.trim())) {
+    if (mode === '二次修改' && (!modifyImageFile || !modifyPrompt.trim())) {
       message.warning('请上传素材并填写修改描述')
       return
     }
     setIsGenerating(true)
     try {
       const base = results.length
-      const style = currentModel.name.includes('像素') ? '像素风' : '国风二次元'
+      const style = currentModel.name
       const dims = ratioToDimensions(ratio, resolution === '2K' ? 512 : 256)
       const genPrompt = mode === '二次修改' ? modifyPrompt : prompt
-      const next = await Promise.all(
-        Array.from({ length: count }, async (_, i) => {
-          const name = `生成素材_${base + i + 1}`
-          const blob = await createPlaceholderPngBlob({
-            name,
-            style,
-            seed: base + i,
-            prompt: genPrompt.slice(0, 20),
+      const category = resolveAssetCategory({ templateId: selectedTemplate })
+
+      const next = []
+      for (let i = 0; i < count; i += 1) {
+        const name = `生成素材_${base + i + 1}`
+        let apiRes
+        if (mode === '文生图') {
+          apiRes = await generateTextToImage({
+            prompt: genPrompt,
             width: dims.width,
             height: dims.height,
+            style,
+            category,
           })
-          const previewUrl = await placeholderBlobToDataUrl(blob)
-          return {
-            id: Date.now() + i,
-            name,
-            layered,
-            ratio,
-            resolution,
-            model: currentModel.name,
-            mode,
-            previewUrl,
-            blob,
-            poses: selectedPoses,
-            createdAt: Date.now(),
-          }
-        }),
-      )
+        } else {
+          const imageFile = mode === '图生图' ? refImageFile : modifyImageFile
+          apiRes = await generateImageToImage({
+            image: imageFile,
+            prompt: genPrompt,
+            width: dims.width,
+            height: dims.height,
+            style,
+            category,
+          })
+        }
+        const previewUrl = resolveMediaUrl(apiRes.url)
+        const blob = await urlToBlob(apiRes.url)
+        next.push({
+          id: Date.now() + i,
+          name,
+          layered,
+          ratio,
+          resolution,
+          model: currentModel.name,
+          mode,
+          previewUrl,
+          blob,
+          cached: apiRes.cached,
+          poses: selectedPoses,
+          createdAt: Date.now(),
+        })
+      }
       setResults((prev) => [...prev, ...next])
-      message.success(`已生成 ${count} 张预览图（本地占位，可下载或入库）`)
-    } catch {
-      message.error('生成失败')
+      message.success(`已生成 ${count} 张图片`)
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : '生成失败，请确认后端已启动'
+      message.error(msg)
     } finally {
       setIsGenerating(false)
     }
@@ -236,6 +258,7 @@ export default function ElementGenerate() {
           {mode === '图生图' && (
             <Upload.Dragger accept="image/*" showUploadList={false} beforeUpload={(f) => {
               setRefImageUrl(URL.createObjectURL(f))
+              setRefImageFile(f)
               return false
             }} className="jm-upload"
             >
@@ -248,6 +271,7 @@ export default function ElementGenerate() {
             <>
               <Upload.Dragger accept="image/*" showUploadList={false} beforeUpload={(f) => {
                 setModifyImageUrl(URL.createObjectURL(f))
+                setModifyImageFile(f)
                 return false
               }} className="jm-upload jm-upload-sm"
               >

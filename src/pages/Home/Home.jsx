@@ -16,7 +16,10 @@ import FeatureCatalog from '../../components/FeatureHub/FeatureCatalog.jsx'
 import assistRefTrace from '../../constants/features/assist-ref-trace.js'
 import { addAssetFromFile } from '../../lib/assets/localAssetStore.js'
 import { zipBlobs } from '../../lib/assets/imageExport.js'
-import { createPlaceholderPngBlob, placeholderBlobToDataUrl } from '../../lib/assets/placeholderAsset.js'
+import { ApiError } from '../../lib/api/client.js'
+import { funcTypeToAssetCategory } from '../../lib/api/assetCategory.js'
+import { generateImageToImage, generateTextToImage } from '../../lib/api/elementApi.js'
+import { resolveMediaUrl, urlToBlob } from '../../lib/api/mediaUrl.js'
 import './Home.css'
 
 const { TextArea } = Input
@@ -50,6 +53,7 @@ export default function Home() {
   const [selectedStyle, setSelectedStyle] = useState('')
   const [selectedSize, setSelectedSize] = useState('128px')
   const [uploadedImage, setUploadedImage] = useState(null)
+  const [uploadedImageFile, setUploadedImageFile] = useState(null)
   const [analysisResult, setAnalysisResult] = useState(null)
   const [generatedAssets, setGeneratedAssets] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('道具物品类')
@@ -94,18 +98,19 @@ export default function Home() {
     const file = info.file.originFileObj || info.file
     if (file) {
       setUploadedImage(URL.createObjectURL(file))
+      setUploadedImageFile(file)
       setAnalysisResult({
-        type: '角色类 - 战士',
-        style: '像素风',
-        material: '金属铠甲 + 布料',
-        suggestion: '建议优化轮廓线条，增强金属质感高光',
+        type: `${selectedCategory} - 参考图`,
+        style: selectedStyle || '像素风',
+        material: '已上传参考图',
+        suggestion: '可输入描述进行图生图，或仅输入文字进行文生图',
       })
-      message.success('参考图上传成功，AI 正在解析...')
+      message.success('参考图上传成功')
     }
   }
 
   const handleGenerate = async () => {
-    if (!prompt && !uploadedImage) {
+    if (!prompt && !uploadedImageFile) {
       message.warning('请输入描述或上传参考图')
       return
     }
@@ -114,18 +119,49 @@ export default function Home() {
       const base = generatedAssets.length
       const style = selectedStyle || '像素风'
       const sizePx = parseInt(selectedSize, 10) || 128
-      const next = await Promise.all(
-        Array.from({ length: 4 }, async (_, i) => {
-          const name = `素材_${base + i + 1}`
-          const blob = await createPlaceholderPngBlob({ name, style, sizePx, seed: base + i })
-          const previewUrl = await placeholderBlobToDataUrl(blob)
-          return { id: Date.now() + i, name, style, size: selectedSize, previewUrl, blob, category: selectedCategory }
-        }),
-      )
+      const category = funcTypeToAssetCategory(selectedCategory)
+      const genPrompt = prompt.trim() || `${selectedCategory}游戏素材，${style}风格`
+
+      const next = []
+      for (let i = 0; i < 4; i += 1) {
+        const name = `素材_${base + i + 1}`
+        let apiRes
+        if (uploadedImageFile) {
+          apiRes = await generateImageToImage({
+            image: uploadedImageFile,
+            prompt: genPrompt,
+            width: sizePx,
+            height: sizePx,
+            style,
+            category,
+          })
+        } else {
+          apiRes = await generateTextToImage({
+            prompt: genPrompt,
+            width: sizePx,
+            height: sizePx,
+            style,
+            category,
+          })
+        }
+        const previewUrl = resolveMediaUrl(apiRes.url)
+        const blob = await urlToBlob(apiRes.url)
+        next.push({
+          id: Date.now() + i,
+          name,
+          style,
+          size: selectedSize,
+          previewUrl,
+          blob,
+          category: selectedCategory,
+          cached: apiRes.cached,
+        })
+      }
       setGeneratedAssets((prev) => [...prev, ...next])
-      message.success('素材生成完成（本地占位预览，可入库或下载）')
-    } catch {
-      message.error('生成失败')
+      message.success('素材生成完成')
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : '生成失败，请确认后端已启动'
+      message.error(msg)
     } finally {
       setIsGenerating(false)
     }
