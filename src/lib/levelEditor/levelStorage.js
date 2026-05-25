@@ -13,7 +13,7 @@ export function saveLevelProject(project) {
   const list = loadLevelProjects()
   const entry = {
     id: project.id ?? `level_${Date.now()}`,
-    name: project.meta?.name ?? '未命名关卡',
+    name: project.meta?.name ?? '未命名地图',
     savedAt: new Date().toISOString(),
     project,
   }
@@ -32,7 +32,7 @@ export function createEmptyProject({ view, gameType, tileSize, cols, rows }) {
   const empty = (fill) => Array.from({ length: rows }, () => Array(cols).fill(fill))
   return {
     id: `level_${Date.now()}`,
-    meta: { name: '未命名关卡', view, gameType, tileSize, cols, rows },
+    meta: { name: '未命名地图', view, gameType, tileSize, cols, rows },
     layers: { background: empty(null), ground: empty(null) },
     layerState: {
       background: { visible: true, locked: false },

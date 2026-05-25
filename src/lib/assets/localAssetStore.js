@@ -1,14 +1,15 @@
 const DB_NAME = 'pixelcraftforge_assets_v1'
-const DB_VERSION = 1
+/** v2：修复 onupgradeneeded 未创建 objectStore 导致无法入库 */
+const DB_VERSION = 2
 const STORE = 'assets'
 
 function openDb() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
-    req.onerror = () => reject(req.error)
+    req.onerror = () => reject(req.error ?? new Error('无法打开本地素材库（IndexedDB）'))
     req.onsuccess = () => resolve(req.result)
-    req.onupgradeneeded = () => {
-      const db = req.objectStore
+    req.onupgradeneeded = (event) => {
+      const db = event.target.result
       if (!db.objectStoreNames.contains(STORE)) {
         const os = db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true })
         os.createIndex('funcType', 'funcType', { unique: false })

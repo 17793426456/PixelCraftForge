@@ -163,6 +163,7 @@ export default function ElementGenerate() {
           resolution,
           model: currentModel.name,
           mode,
+          url: apiRes.url,
           previewUrl,
           blob,
           cached: apiRes.cached,
@@ -199,8 +200,9 @@ export default function ElementGenerate() {
         })
         saved += 1
       }
-      message.success(`已入库 ${saved} 个素材，可在素材仓库查看`)
+      message.success(`已入库 ${saved} 个素材，请打开侧栏「素材仓库」查看`)
     } catch (err) {
+      console.error('[saveToLibrary]', err)
       message.error(err instanceof Error ? err.message : '入库失败')
     }
   }
@@ -214,8 +216,9 @@ export default function ElementGenerate() {
         style: r.model,
         defaultExt: 'png',
       })
-      message.success(`「${r.name}」已入库`)
+      message.success(`「${r.name}」已入库，可在侧栏「素材仓库」查看`)
     } catch (err) {
+      console.error('[saveToLibrary]', err)
       message.error(err instanceof Error ? err.message : '入库失败')
     }
   }

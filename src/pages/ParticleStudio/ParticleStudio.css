@@ -216,28 +216,6 @@
   font-size: 12px !important;
 }
 
-.ae-preset-preview-btn {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(168, 85, 247, 0.35);
-  background: rgba(168, 85, 247, 0.12);
-  color: #c4b5fd;
-  cursor: pointer;
-}
-
-.ae-preset-preview-btn:hover {
-  background: rgba(168, 85, 247, 0.28);
-}
-
-.ae-preset-preview-img {
-  width: 100%;
-  height: auto;
-  display: block;
-  border-radius: 8px;
-  background: #0a0a0e;
-}
-
 .ae-callouts {
   padding: 8px 16px 0;
 }

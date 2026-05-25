@@ -6,17 +6,25 @@ export async function saveBlobToLibrary(blob, filename, meta = {}) {
   return addAssetFromFile(file, meta)
 }
 
-/** 图片/视频生成结果一键入库 */
+/** 图片/视频生成结果一键入库（写入浏览器 IndexedDB，素材仓库页可见） */
 export async function saveGeneratedItemToLibrary(item, options = {}) {
-  const blob = await ensureResultBlob(item)
+  let blob
+  try {
+    blob = await ensureResultBlob(item)
+  } catch (err) {
+    throw err instanceof Error ? err : new Error('无法读取生成结果')
+  }
+  if (!blob?.size) {
+    throw new Error('生成结果为空，请重新生成后再入库')
+  }
   const ext = guessMediaExtension(blob, options.defaultExt ?? 'png')
   const baseName = options.name ?? item?.name ?? `素材_${Date.now()}`
   const filename = baseName.includes('.') ? baseName : `${baseName}.${ext}`
   const isVideo = (blob.type || '').startsWith('video/') || ext === 'mp4' || ext === 'webm'
   return saveBlobToLibrary(blob, filename, {
     name: baseName.replace(/\.[^.]+$/, ''),
-    funcType: isVideo ? '动态类' : (options.funcType ?? '角色类'),
-    matType: isVideo ? '视频素材' : (options.matType ?? '卡通极简材质'),
+    funcType: isVideo ? '特效动作类' : (options.funcType ?? '角色类'),
+    matType: isVideo ? '魔幻特殊材质' : (options.matType ?? '卡通极简材质'),
     folder: options.folder ?? (isVideo ? '视频生成' : '图片生成'),
     style: options.style ?? item?.model ?? '像素风',
     ...options.meta,

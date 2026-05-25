@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  BlockOutlined, BgColorsOutlined, ClearOutlined, FileGifOutlined,
-  MoonOutlined, QuestionCircleOutlined, ScissorOutlined, AppstoreOutlined,
-  ThunderboltOutlined, ToolOutlined, VideoCameraOutlined, FormatPainterOutlined,
-  EditOutlined,
+  BlockOutlined, BgColorsOutlined, FileGifOutlined,
+  MoonOutlined, QuestionCircleOutlined, ScissorOutlined,
+  ThunderboltOutlined, EditOutlined, VideoCameraOutlined, FormatPainterOutlined,
 } from '@/lib/icons/antd-lucide'
 import { Collapse, Tabs, Tooltip, Button, message } from '@/components/app/wrapped-ui'
 import GifFrameTool from './GifFrameTool.jsx'
 import SpriteSheetTool from './SpriteSheetTool.jsx'
-import GeminiWatermark from './GeminiWatermark.jsx'
 import ImageChromaMatte from './ImageChromaMatte.jsx'
 import ImagePixelateTool from './ImagePixelateTool.jsx'
-import ImageTransformTool from './ImageTransformTool.jsx'
 import PixelBrushEditor from './PixelBrushEditor.jsx'
-import EfficiencyHub from '../../fr-port/components/EfficiencyHub.jsx'
-import SheetProTool from '../../fr-port/components/SheetProTool.jsx'
 import assistEngineExport from '../../constants/features/assist-engine-export.js'
-import { applyFeatureTab } from '../../utils/featureNavigate.js'
 import './PixelTools.css'
+
+const REMOVED_TABS = new Set(['watermark', 'transform', 'efficiency', 'sheetPro'])
+const TAB_ALIASES = {
+  watermark: 'matte',
+  transform: 'pixelate',
+  efficiency: 'brush',
+  sheetPro: 'sheet',
+}
 
 const TIP_ITEMS = [
   {
@@ -32,7 +34,7 @@ const TIP_ITEMS = [
     desc: '适合从动画提取逐帧素材，用于精灵图或逐帧动画制作',
   },
   {
-    Icon: AppstoreOutlined,
+    Icon: ScissorOutlined,
     title: '精灵图工具',
     desc: '可快速拆分与合并图集，支持自动排版与间隙调整',
   },
@@ -60,7 +62,7 @@ const TOOL_CARDS = [
   },
   {
     key: 'sheet',
-    Icon: AppstoreOutlined,
+    Icon: ScissorOutlined,
     label: '精灵图',
     title: '精灵图拆分 / 合并 / 裁切排版',
     desc: '行列拆分、序列帧合成、帧动画裁切与排版',
@@ -79,34 +81,6 @@ const TOOL_CARDS = [
     title: 'OpenCV 像素化处理',
     desc: '将图片转为像素风格，可调块大小',
   },
-  {
-    key: 'watermark',
-    Icon: ClearOutlined,
-    label: '去水印',
-    title: 'Gemini AI 去水印',
-    desc: '智能识别并去除图片水印区域',
-  },
-  {
-    key: 'transform',
-    Icon: ToolOutlined,
-    label: '变换',
-    title: '贴图变换',
-    desc: '旋转、缩放、翻转与格式转换',
-  },
-  {
-    key: 'efficiency',
-    Icon: ThunderboltOutlined,
-    label: '效率',
-    title: '效率工具',
-    desc: '自定义缩放、切片等批量处理',
-  },
-  {
-    key: 'sheetPro',
-    Icon: BlockOutlined,
-    label: 'Pro',
-    title: '精灵表 Pro',
-    desc: '高级精灵表编辑与导出',
-  },
 ]
 
 const TAB_KEY_MAP = {
@@ -115,10 +89,6 @@ const TAB_KEY_MAP = {
   sheet: 'sheet',
   matte: 'matte',
   pixelate: 'pixelate',
-  watermark: 'watermark',
-  transform: 'transform',
-  efficiency: 'efficiency',
-  sheetPro: 'sheetPro',
 }
 
 const PROCESS_NOTES = [
@@ -153,7 +123,7 @@ const USE_CASES = [
   {
     Icon: FormatPainterOutlined,
     title: '设计素材',
-    desc: '抠图、去水印、像素化处理，一站式本地完成',
+    desc: '抠图、像素化处理，一站式本地完成',
   },
 ]
 
@@ -186,7 +156,13 @@ export default function PixelTools() {
   const [activeTab, setActiveTab] = useState('brush')
 
   useEffect(() => {
-    applyFeatureTab(searchParams, setActiveTab)
+    const tab = searchParams.get('tab')
+    if (!tab) return
+    if (REMOVED_TABS.has(tab)) {
+      setActiveTab(TAB_ALIASES[tab] ?? 'brush')
+      return
+    }
+    setActiveTab(tab)
   }, [searchParams])
   const [gifStatus, setGifStatus] = useState(null)
   const templateRef = useRef(null)
@@ -216,11 +192,7 @@ export default function PixelTools() {
       ),
     },
     { key: 'sheet', label: '精灵图工具', children: <SpriteSheetTool /> },
-    { key: 'efficiency', label: '效率工具', children: <div className="pixel-tool-panel"><EfficiencyHub /></div> },
-    { key: 'sheetPro', label: '精灵表 Pro', children: <div className="pixel-tool-panel"><SheetProTool /></div> },
-    { key: 'transform', label: '贴图变换', children: <ImageTransformTool /> },
     { key: 'pixelate', label: '图片像素化', children: <ImagePixelateTool /> },
-    { key: 'watermark', label: 'Gemini 去水印', children: <GeminiWatermark /> },
     { key: 'matte', label: '色度键抠图', children: <ImageChromaMatte /> },
   ]
 
@@ -354,7 +326,7 @@ export default function PixelTools() {
 
             <section className="pt-widget pt-widget--templates">
               <header className="pt-widget-head">
-                <h3 className="pt-widget-title"><ToolOutlined /> 快速模板</h3>
+                <h3 className="pt-widget-title"><ThunderboltOutlined /> 快速模板</h3>
               </header>
               <div className="pt-template-row">
                 {QUICK_TEMPLATES.map((preset) => (

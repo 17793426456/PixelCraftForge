@@ -1,13 +1,13 @@
 /**
- * 2D 关卡编辑器 — 产品目标与边界（Single Source of Truth）
+ * 2D 地图编辑器 — 产品目标与边界（Single Source of Truth）
  *
- * 核心能力：「文字描述 + 拖拽编辑」→ 可导出 2D 游戏关卡 JSON
- * 非目标（当前版本）：真实 AI 后端、Tiled .tmx、多人协作、自定义素材上传
+ * 核心能力：「模板 + 拖拽编辑 + 地图扩展」→ 可导出 2D 游戏地图 JSON
+ * 非目标（当前版本）：真实 AI 后端、Tiled .tmx、多人协作
  */
 
 export const PRODUCT = {
-  name: 'PixelCraft 关卡编辑器',
-  tagline: '文字描述 + 拖拽编辑 → 引擎可导入的 2D 关卡数据',
+  name: 'PixelCraft 地图编辑器',
+  tagline: '拖拽搭建 + 四向扩展 → 引擎可导入的 2D 地图数据',
   specVersion: '1.0',
   exportFormat: 'pixelcraftforge-level-v1',
 }
@@ -72,7 +72,8 @@ export const ENGINE_TARGETS = [
 
 export const BUILD_TIPS = {
   'side-scroll': [
-    '横版关卡建议地面层保持同一高度，方便跳跃判定',
+    '横版地图可用「向右扩展」加长跑道，已有地块会保留',
+    '横版地图建议地面层保持同一高度，方便跳跃判定',
     '碰撞体层标注平台边缘，导出后可直接用于物理引擎',
     '装饰层放置背景树、建筑，不要与地面层混用',
   ],

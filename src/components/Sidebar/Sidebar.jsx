@@ -1,11 +1,10 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  Home, Sparkles, Pencil, Video, Volume2, LayoutGrid, PlayCircle,
+  Home, Sparkles, Video, Volume2, LayoutGrid, PlayCircle,
   Grid3x3, Palette, Zap, Square, PanelLeftClose, PanelLeft,
 } from 'lucide-react'
-import BrandName from '../Brand/BrandName'
 import { brandLogo, BRAND_NAME_FULL } from '../../constants/brand'
-import { useSidebar, SIDEBAR_WIDTH } from '../../contexts/SidebarContext'
+import { useSidebar } from '../../contexts/SidebarContext'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import './Sidebar.css'
@@ -19,7 +18,6 @@ const navGroups = [
     title: '图片素材',
     items: [
       { key: '/generate', label: '图片生成', Icon: Sparkles },
-      { key: '/customize', label: '元素改造', Icon: Pencil },
       { key: '/pixel-tools', label: '像素工具箱', Icon: Grid3x3 },
       { key: '/layer-editor', label: '图层编辑器', Icon: Palette },
       { key: '/ui-studio', label: 'UI 工作室', Icon: LayoutGrid },
@@ -36,7 +34,7 @@ const navGroups = [
   {
     title: '场景地图',
     items: [
-      { key: '/level-editor', label: '关卡编辑器', Icon: Square },
+      { key: '/map-editor', label: '地图编辑器', Icon: Square },
     ],
   },
   {
@@ -102,9 +100,6 @@ function ShellSidebar({ collapsed, onToggle, onNavigate, pathname, isMobile = fa
           <span className="shell-image">
             <img src={brandLogo} alt="" draggable={false} />
           </span>
-          <div className="shell-logo-text">
-            <BrandName layout="stack" className="shell-brand-name" />
-          </div>
         </div>
       </header>
 

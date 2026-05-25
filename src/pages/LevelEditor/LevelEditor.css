@@ -9,11 +9,15 @@
 .le-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(16, 16, 22, 0.98);
+}
+
+.le-toolbar > * {
+  margin: 2px 4px;
 }
 
 .le-toolbar-title {
@@ -132,55 +136,124 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px;
+  padding: 14px 16px;
   overflow: auto;
+  min-width: 0;
 }
 
 .le-layer-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
   width: 100%;
-  max-width: 960px;
+  max-width: 100%;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.le-layer-bar .ant-space {
+  gap: 10px !important;
 }
 
 .le-layer-bar .ant-btn,
 .le-layer-bar [data-slot="button"] {
   min-height: 30px !important;
-  padding: 5px 12px !important;
+  margin: 4px !important;
+  padding: 6px 14px !important;
   justify-content: center !important;
   text-align: center !important;
 }
 
+.le-canvas-viewport {
+  position: relative;
+  width: min(100%, 920px);
+  height: min(68vh, 520px);
+  min-width: 280px;
+  min-height: 200px;
+  max-width: 100%;
+  max-height: calc(100vh - 200px);
+  margin: 8px 6px 12px;
+  padding: 14px;
+  overflow: auto;
+  resize: both;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.4);
+}
+
+.le-canvas-viewport::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 12px;
+  height: 12px;
+  border-right: 2px solid rgba(168, 85, 247, 0.55);
+  border-bottom: 2px solid rgba(168, 85, 247, 0.55);
+  pointer-events: none;
+}
+
 .le-canvas-wrap {
+  display: inline-block;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
+.le-asset-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.le-asset-actions .ant-btn,
+.le-asset-actions [data-slot="button"] {
+  min-height: 34px !important;
+  padding: 7px 16px !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 8px !important;
+}
+
+.le-asset-card.customized {
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+.le-asset-swatch--img {
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .le-canvas-wrap canvas {
   display: block;
   cursor: crosshair;
-  max-width: 100%;
 }
 
 .le-view-bar {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.45);
   text-align: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .le-view-bar .ant-btn,
 .le-view-bar [data-slot="button"] {
   min-height: 30px !important;
-  padding: 5px 12px !important;
+  margin: 4px !important;
+  padding: 6px 14px !important;
   justify-content: center !important;
   text-align: center !important;
 }
@@ -235,7 +308,7 @@
 .le-template-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
   margin-bottom: 14px;
 }
@@ -244,7 +317,8 @@
 .le-template-row [data-slot="button"] {
   min-height: 30px !important;
   height: auto !important;
-  padding: 5px 14px !important;
+  margin: 4px !important;
+  padding: 6px 14px !important;
   font-size: 12px !important;
   justify-content: center !important;
   text-align: center !important;
@@ -295,7 +369,62 @@
   padding: 8px 14px 0;
 }
 
-/* 功能说明卡在关卡页保持可读，不强制全文居中 */
+.le-expand-hint {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.le-expand-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.le-expand-grid .ant-btn,
+.le-expand-grid [data-slot="button"] {
+  margin: 4px 0 !important;
+  min-height: 34px !important;
+  padding: 8px 14px !important;
+  font-size: 12px !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.le-tips .le-control,
+.le-tips .ant-btn,
+.le-tips [data-slot="button"] {
+  margin: 4px 0 !important;
+}
+
+.le-expand-wide,
+.le-expand-wide.ant-btn,
+.le-expand-wide[data-slot="button"] {
+  width: 100% !important;
+  min-height: 42px !important;
+  height: auto !important;
+  margin: 8px 0 14px !important;
+  padding: 12px 20px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  justify-content: center !important;
+  text-align: center !important;
+  white-space: normal;
+}
+
+.le-tips-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* 功能说明卡在地图页保持可读，不强制全文居中 */
 .le-callout .feature-callout-title,
 .le-callout .feature-callout-summary,
 .le-callout .feature-callout-list {

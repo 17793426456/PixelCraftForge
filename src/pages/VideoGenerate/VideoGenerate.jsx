@@ -47,7 +47,6 @@ const motionOptions = ['低', '中', '高']
 const modeOptions = [
   { label: '文生视频', value: '文生视频', icon: <HighlightOutlined /> },
   { label: '图生视频', value: '图生视频', icon: <PictureOutlined /> },
-  { label: '视频延长', value: '视频延长', icon: <PlayCircleOutlined /> },
 ]
 
 const DEFAULTS = {
@@ -63,7 +62,6 @@ const DEFAULTS = {
   loop: false,
   refImage: null,
   refLastImage: null,
-  refVideo: null,
 }
 
 export default function VideoGenerate() {
@@ -81,8 +79,6 @@ export default function VideoGenerate() {
   const [refImageFile, setRefImageFile] = useState(null)
   const [refLastImage, setRefLastImage] = useState(DEFAULTS.refLastImage)
   const [refLastImageFile, setRefLastImageFile] = useState(null)
-  const [refVideo, setRefVideo] = useState(DEFAULTS.refVideo)
-  const [refVideoFile, setRefVideoFile] = useState(null)
   const [results, setResults] = useState([])
   const [filterTime, setFilterTime] = useState('全部时间')
   const [filterType, setFilterType] = useState('全部类型')
@@ -113,8 +109,6 @@ export default function VideoGenerate() {
     setRefImageFile(null)
     setRefLastImage(DEFAULTS.refLastImage)
     setRefLastImageFile(null)
-    setRefVideo(DEFAULTS.refVideo)
-    setRefVideoFile(null)
     message.info('已重置所有参数')
   }
 
@@ -134,14 +128,6 @@ export default function VideoGenerate() {
     message.success('尾帧上传成功')
   }
 
-  const handleVideoFiles = (files) => {
-    const file = files?.[0]
-    if (!file) return
-    setRefVideo({ name: file.name, url: URL.createObjectURL(file) })
-    setRefVideoFile(file)
-    message.success('参考视频上传成功')
-  }
-
   const handleGenerate = async () => {
     if (mode === '文生视频' && !prompt.trim()) {
       message.warning('请输入视频描述后再生成')
@@ -149,10 +135,6 @@ export default function VideoGenerate() {
     }
     if (mode === '图生视频' && !refImageFile) {
       message.warning('请上传首帧参考图')
-      return
-    }
-    if (mode === '视频延长') {
-      message.info('视频延长功能即将上线，当前后端暂未提供该接口')
       return
     }
 
@@ -237,7 +219,7 @@ export default function VideoGenerate() {
     items: ['全部时间', '今天', '本周', '本月'].map(t => ({ key: t, label: t, onClick: () => setFilterTime(t) })),
   }
   const typeMenu = {
-    items: ['全部类型', '文生视频', '图生视频', '视频延长'].map(t => ({ key: t, label: t, onClick: () => setFilterType(t) })),
+    items: ['全部类型', '文生视频', '图生视频'].map(t => ({ key: t, label: t, onClick: () => setFilterType(t) })),
   }
 
   const [filteredResults, setFilteredResults] = useState(results)
@@ -419,28 +401,6 @@ export default function VideoGenerate() {
             </>
           )}
 
-          {mode === '视频延长' && (
-            <>
-              <FileDropzone
-                accept="video/*"
-                maxCount={1}
-                className="jm-upload"
-                title={refVideo ? '已选视频，点击更换' : '点击或拖拽上传待延长视频'}
-                onFiles={handleVideoFiles}
-              >
-                {refVideo ? (
-                  <video src={refVideo.url} className="vg-ref-preview" muted />
-                ) : (
-                  <>
-                    <p className="jm-upload-icon"><IconFont type="icon-video" /></p>
-                    <p className="jm-upload-text">上传待延长的游戏演示视频</p>
-                  </>
-                )}
-              </FileDropzone>
-              <TextArea rows={3} placeholder="描述延长方向，如：继续播放角色行走动画..." value={prompt} onChange={e => setPrompt(e.target.value)} className="jm-prompt" variant="borderless" />
-            </>
-          )}
-
           <div className="jm-options">
             <div className="jm-opt-group">
               <span className="jm-opt-label">场景模板</span>
@@ -568,7 +528,7 @@ export default function VideoGenerate() {
                 <IconFont type="icon-sparkle" className="jm-welcome-sparkle" />
               </div>
               <p className="jm-welcome-title">欢迎来到 像素造物 PixelCraft Forge</p>
-              <p className="jm-welcome-desc">文生视频、图生视频、视频延长，一键生成游戏动画</p>
+              <p className="jm-welcome-desc">文生视频、图生视频，一键生成游戏动画</p>
             </div>
           ) : (
             <div className="vg-results-grid">

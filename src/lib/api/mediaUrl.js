@@ -51,10 +51,19 @@ export async function urlToBlob(url) {
 
 /** 生成结果入库/下载时确保有 blob（OSS 走代理后可再拉取） */
 export async function ensureResultBlob(item) {
-  if (item?.blob) return item.blob
-  const raw = item?.storageUrl ?? item?.url ?? item?.previewUrl ?? item?.videoUrl
-  if (!raw) throw new Error('无可用的媒体地址')
-  return urlToBlob(raw)
+  if (item?.blob instanceof Blob && item.blob.size > 0) {
+    return item.blob
+  }
+  const raw = item?.storageUrl ?? item?.url ?? item?.videoUrl ?? item?.previewUrl
+  if (!raw) {
+    throw new Error('无可用的媒体数据，请重新生成后再入库')
+  }
+  try {
+    return await urlToBlob(raw)
+  } catch (err) {
+    const hint = err instanceof Error ? err.message : String(err)
+    throw new Error(`拉取图片失败：${hint}。请确认后端已启动，或先点击「下载」再导入素材仓库`, { cause: err })
+  }
 }
 
 export function guessMediaExtension(blob, fallback = 'bin') {

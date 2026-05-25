@@ -12,7 +12,6 @@ import {
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
 import vfxPresets from '../../constants/features/vfx-presets.js'
-import vfxPreviewTiming from '../../constants/features/vfx-preview-timing.js'
 import { triggerDownload, zipBlobs } from '../../lib/assets/imageExport.js'
 import {
   BUILTIN_PRESETS,
@@ -40,9 +39,6 @@ import {
 } from '../../lib/particle/aeEngineExport.js'
 import JSZip from 'jszip'
 import './ParticleStudio.css'
-
-const PRESET_PREVIEW_W = 960
-const PRESET_PREVIEW_H = 540
 
 function ParamSlider({ label, min, max, step = 1, value, onChange }) {
   return (
@@ -86,8 +82,6 @@ export default function ParticleStudio() {
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [presetName, setPresetName] = useState('')
   const [selectedKeyframeId, setSelectedKeyframeId] = useState(null)
-  const [presetPreviewUrl, setPresetPreviewUrl] = useState(null)
-  const [presetPreviewTitle, setPresetPreviewTitle] = useState('')
 
   const layersRef = useRef(layers)
   const globalRef = useRef(global)
@@ -418,39 +412,6 @@ export default function ParticleStudio() {
     resetSimulation()
   }
 
-  const renderPresetPreview = async (presetKey) => {
-    const preset = BUILTIN_PRESETS[presetKey]
-    if (!preset) return
-    const layer = deepMergeLayer(createDefaultLayer('preview', preset.name), preset.layer)
-    const texMap = {}
-    if (layer.appearance?.shape === 'texture' || getBuiltinPresetTextureKey(preset)) {
-      try {
-        texMap[layer.id] = await createExampleParticleTexture(getBuiltinPresetTextureKey(preset))
-      } catch { /* ignore */ }
-    }
-    const off = document.createElement('canvas')
-    off.width = PRESET_PREVIEW_W
-    off.height = PRESET_PREVIEW_H
-    const particles = { [layer.id]: [] }
-    const spawnAcc = { [layer.id]: 0 }
-    for (let i = 0; i < 90; i += 1) {
-      const step = simulateStep([layer], particles, spawnAcc, PRESET_PREVIEW_W, PRESET_PREVIEW_H)
-      particles[layer.id] = step.particlesByLayer[layer.id] ?? []
-      spawnAcc[layer.id] = step.spawnAcc[layer.id] ?? 0
-    }
-    renderFrame(off.getContext('2d'), [layer], particles, texMap, {
-      w: PRESET_PREVIEW_W,
-      h: PRESET_PREVIEW_H,
-      showGizmo: false,
-      viewScale: 1,
-      viewPanX: 0,
-      viewPanY: 0,
-      trail: true,
-    })
-    setPresetPreviewTitle(preset.name)
-    setPresetPreviewUrl(off.toDataURL('image/png'))
-  }
-
   const handleAddKeyframe = () => {
     setLayers((prev) => prev.map((l) => (
       l.id === activeLayerId
@@ -599,7 +560,7 @@ export default function ParticleStudio() {
             <Switch checked={activeLayer.animation.loop} onChange={(v) => updateActiveLayer({ animation: { loop: v } })} />
           </div>
           <ParamSlider label="全局帧率 FPS" min={12} max={60} value={global.fps} onChange={(v) => setGlobal((g) => ({ ...g, fps: v }))} />
-          <ParamSlider label="预览时长 (秒)" min={1} max={15} value={global.duration} onChange={(v) => setGlobal((g) => ({ ...g, duration: v }))} />
+          <ParamSlider label="动画时长 (秒)" min={1} max={15} value={global.duration} onChange={(v) => setGlobal((g) => ({ ...g, duration: v }))} />
           <div className="ae-param-row">
             <div className="ae-param-label">循环播放</div>
             <Switch checked={global.loop} onChange={(v) => setGlobal((g) => ({ ...g, loop: v }))} />
@@ -656,14 +617,6 @@ export default function ParticleStudio() {
           <div className="ae-presets-row">
             {Object.entries(BUILTIN_PRESETS).map(([k, p]) => (
               <div key={k} className="ae-preset-chip">
-                <button
-                  type="button"
-                  className="ae-preset-preview-btn"
-                  title="放大预览"
-                  onClick={() => { void renderPresetPreview(k) }}
-                >
-                  预览
-                </button>
                 <Button size="small" type="default" onClick={() => { void importExampleTexture(k) }}>
                   导入示例
                 </Button>
@@ -694,7 +647,6 @@ export default function ParticleStudio() {
       <div className="ae-callouts">
         <FeatureCallout feature={vfxParticleParams} />
         <FeatureCallout feature={vfxPresets} />
-        <FeatureCallout feature={vfxPreviewTiming} />
       </div>
 
       <div className="ae-toolbar">
@@ -797,20 +749,6 @@ export default function ParticleStudio() {
 
       <Modal title="保存特效方案" open={saveModalOpen} onOk={handleSavePreset} onCancel={() => setSaveModalOpen(false)}>
         <Input placeholder="方案名称，如：火球术尾迹" value={presetName} onChange={(e) => setPresetName(e.target.value)} />
-      </Modal>
-
-      <Modal
-        title={`预设预览 · ${presetPreviewTitle}`}
-        open={!!presetPreviewUrl}
-        footer={(
-          <Button type="primary" onClick={() => setPresetPreviewUrl(null)}>关闭</Button>
-        )}
-        onCancel={() => setPresetPreviewUrl(null)}
-        width={Math.min(PRESET_PREVIEW_W + 48, window.innerWidth - 40)}
-      >
-        {presetPreviewUrl && (
-          <img src={presetPreviewUrl} alt={presetPreviewTitle} className="ae-preset-preview-img" />
-        )}
       </Modal>
     </div>
   )
