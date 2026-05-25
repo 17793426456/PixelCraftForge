@@ -77,6 +77,7 @@ public class SeedanceCreateTaskRequest {
     public static class ContentItem {
         private String type;
         private String text;
+        private String role;
 
         @JsonProperty("image_url")
         private ImageUrl imageUrl;
@@ -89,11 +90,18 @@ public class SeedanceCreateTaskRequest {
         }
 
         public static ContentItem imageUrl(String url) {
+            return imageUrl(url, null);
+        }
+
+        public static ContentItem imageUrl(String url, String role) {
             ContentItem item = new ContentItem();
             item.setType("image_url");
             ImageUrl image = new ImageUrl();
             image.setUrl(url);
             item.setImageUrl(image);
+            if (role != null && !role.isBlank()) {
+                item.setRole(role);
+            }
             return item;
         }
 
@@ -111,6 +119,14 @@ public class SeedanceCreateTaskRequest {
 
         public void setText(String text) {
             this.text = text;
+        }
+
+        public String getRole() {
+            return role;
+        }
+
+        public void setRole(String role) {
+            this.role = role;
         }
 
         public ImageUrl getImageUrl() {

@@ -84,11 +84,14 @@ export default function AssetLibrary() {
   }
 
   const handleImport = async ({ fileList }) => {
+    const files = (fileList ?? []).map((item) => item.originFileObj).filter(Boolean)
+    if (!files.length) {
+      message.warning('未选择有效文件')
+      return
+    }
     setLoading(true)
     try {
-      for (const item of fileList) {
-        const file = item.originFileObj
-        if (!file) continue
+      for (const file of files) {
         let width = null
         let height = null
         if (file.type.startsWith('image/')) {
@@ -105,7 +108,7 @@ export default function AssetLibrary() {
         })
       }
       await refresh()
-      message.success(`已导入 ${fileList.length} 个文件到本地仓库`)
+      message.success(`已导入 ${files.length} 个文件到本地仓库`)
     } catch (e) {
       message.error(e instanceof Error ? e.message : '导入失败')
     } finally {
@@ -218,20 +221,22 @@ export default function AssetLibrary() {
                 showUploadList={false}
                 beforeUpload={() => false}
                 onChange={handleImport}
-                accept="image/*,audio/*,.gif,.zip"
+                accept="image/*,video/*,audio/*,.gif,.zip,.json"
               >
-                <p><UploadOutlined /> 拖拽或点击导入素材</p>
+                <p className="library-upload-title"><UploadOutlined /> 拖拽或点击导入素材库</p>
+                <p className="library-import-hint">支持图片、视频、音频、GIF、ZIP</p>
               </Upload.Dragger>
               <Input.Search
+                className="library-search"
                 placeholder="搜索素材名称..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 allowClear
-                style={{ margin: '14px 0' }}
               />
               <div className="library-filter-group">
                 <span className="library-filter-label">文件夹</span>
                 <Select
+                  className="library-folder-select"
                   style={{ width: '100%' }}
                   value={folderFilter}
                   onChange={setFolderFilter}
@@ -240,23 +245,33 @@ export default function AssetLibrary() {
               </div>
               <div className="library-filter-group">
                 <span className="library-filter-label">功能分类</span>
-                <Space wrap size={[6, 6]}>
+                <div className="library-filter-tags">
                   {functionCategories.map((c) => (
-                    <Tag key={c} color={funcFilter === c ? 'purple' : 'default'} onClick={() => setFuncFilter(c)} style={{ cursor: 'pointer' }}>
+                    <button
+                      key={c}
+                      type="button"
+                      className={`library-filter-tag ${funcFilter === c ? 'is-active is-active--func' : ''}`}
+                      onClick={() => setFuncFilter(c)}
+                    >
                       {c}
-                    </Tag>
+                    </button>
                   ))}
-                </Space>
+                </div>
               </div>
               <div className="library-filter-group">
                 <span className="library-filter-label">材质分类</span>
-                <Space wrap size={[6, 6]}>
+                <div className="library-filter-tags">
                   {materialCategories.map((c) => (
-                    <Tag key={c} color={matFilter === c ? 'blue' : 'default'} onClick={() => setMatFilter(c)} style={{ cursor: 'pointer' }}>
+                    <button
+                      key={c}
+                      type="button"
+                      className={`library-filter-tag ${matFilter === c ? 'is-active is-active--mat' : ''}`}
+                      onClick={() => setMatFilter(c)}
+                    >
                       {c}
-                    </Tag>
+                    </button>
                   ))}
-                </Space>
+                </div>
               </div>
             </div>
           </aside>
@@ -285,9 +300,14 @@ export default function AssetLibrary() {
             <FeatureCallout feature={assetFormatConvert} />
             <div className="library-compress-row">
               <FeatureCallout feature={assetCompressMobile} />
-              <span className="library-filter-label">压缩质量 {compressQuality}% · 最长边 {maxEdge}px</span>
-              <Slider min={40} max={100} value={compressQuality} onChange={setCompressQuality} />
-              <Slider min={64} max={2048} step={64} value={maxEdge} onChange={setMaxEdge} />
+              <div className="library-compress-field">
+                <span className="library-filter-label">压缩质量 {compressQuality}%</span>
+                <Slider min={40} max={100} value={compressQuality} onChange={setCompressQuality} />
+              </div>
+              <div className="library-compress-field">
+                <span className="library-filter-label">最长边 {maxEdge}px</span>
+                <Slider min={64} max={2048} step={64} value={maxEdge} onChange={setMaxEdge} />
+              </div>
             </div>
             {snapshots.length > 0 && (
               <div className="library-snapshots">

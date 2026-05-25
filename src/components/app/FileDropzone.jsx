@@ -10,12 +10,14 @@ export default function FileDropzone({
   multiple = false,
   maxCount,
   disabled = false,
+  variant = 'default',
   className,
   title = '拖拽或点击上传文件',
   hint,
   onFiles,
   children,
 }) {
+  const inline = variant === 'inline'
   const inputRef = useRef(null)
 
   const handleFiles = (fileList) => {
@@ -31,11 +33,16 @@ export default function FileDropzone({
       role="button"
       tabIndex={disabled ? -1 : 0}
       className={cn(
-        'flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40 px-6 py-8 text-center transition-colors hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        inline
+          ? 'inline-flex w-full min-h-0 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent px-2 py-1.5 text-center text-sm text-popover-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          : 'flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40 px-6 py-8 text-center transition-colors hover:border-primary/40 hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         disabled && 'pointer-events-none opacity-50',
         className,
       )}
-      onClick={() => !disabled && inputRef.current?.click()}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!disabled) inputRef.current?.click()
+      }}
       onKeyDown={(e) => e.key === 'Enter' && !disabled && inputRef.current?.click()}
       onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
       onDrop={(e) => {
@@ -59,8 +66,8 @@ export default function FileDropzone({
       {children ?? (
         <>
           <Upload className="mb-3 size-8 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">{title}</p>
-          {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+          <p className="px-3 text-sm font-medium text-foreground">{title}</p>
+          {hint && <p className="mt-1.5 px-3 text-xs leading-relaxed text-muted-foreground">{hint}</p>}
         </>
       )}
     </div>

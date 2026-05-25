@@ -10,7 +10,6 @@ import Stack from '@/components/app/Stack'
 import AppSegmented from '@/components/app/AppSegmented'
 import { message } from '@/lib/ui/notify'
 import { useLanguage } from '../shims/useLanguage.js'
-import ImageFineEditor from '../shims/NoopFineEditor.jsx'
 import StashableImage from '../shims/StashableImage.jsx'
 import StashDropZone from '../shims/StashDropZone.jsx'
 import {
@@ -511,7 +510,7 @@ export default function RoninProCustomScale() {
       {resultUrl && (
         <>
           <Text strong>{t('imgPreview')}</Text>
-          <ImageFineEditor imageUrl={resultUrl} />
+          <StashableImage src={resultUrl} className="max-w-full rounded-md border border-border" />
         </>
       )}
     </Space>

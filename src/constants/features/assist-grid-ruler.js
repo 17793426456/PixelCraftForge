@@ -2,9 +2,9 @@ export default {
   id: 'assist-grid-ruler',
   categoryId: 'assist',
   title: '标尺网格、对齐辅助线',
-  summary: '精灵表 Pro 与场景搭建提供网格对齐与元素坐标参考线。',
+  summary: '像素画笔与精灵图工具提供网格对齐，地图编辑器支持坐标网格。',
   status: 'ready',
   route: '/pixel-tools',
-  tab: 'sheetPro',
-  highlights: ['精灵表网格', '帧对齐', '场景线框'],
+  tab: 'brush',
+  highlights: ['画笔网格', '精灵图对齐', '地图网格'],
 }

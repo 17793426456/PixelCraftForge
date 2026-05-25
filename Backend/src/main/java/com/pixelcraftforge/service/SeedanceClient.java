@@ -46,10 +46,16 @@ public class SeedanceClient {
         return createTask(request, content);
     }
 
-    public String createImageToVideoTask(VideoGenerateRequest request, String referenceImageDataUri) {
+    public String createImageToVideoTask(
+            VideoGenerateRequest request,
+            String firstFrameDataUri,
+            String lastFrameDataUri) {
         List<SeedanceCreateTaskRequest.ContentItem> content = new ArrayList<>();
         content.add(SeedanceCreateTaskRequest.ContentItem.text(request.getPrompt()));
-        content.add(SeedanceCreateTaskRequest.ContentItem.imageUrl(referenceImageDataUri));
+        content.add(SeedanceCreateTaskRequest.ContentItem.imageUrl(firstFrameDataUri, "first_frame"));
+        if (lastFrameDataUri != null && !lastFrameDataUri.isBlank()) {
+            content.add(SeedanceCreateTaskRequest.ContentItem.imageUrl(lastFrameDataUri, "last_frame"));
+        }
         return createTask(request, content);
     }
 

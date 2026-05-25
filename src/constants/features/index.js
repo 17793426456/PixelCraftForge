@@ -10,8 +10,8 @@ import sceneTileBuild from './scene-tile-build.js'
 import sceneObjectCollision from './scene-object-collision.js'
 import sceneLayerZ from './scene-layer-z.js'
 import sceneMapExport from './scene-map-export.js'
+import sceneMapExpand from './scene-map-expand.js'
 import uiDrawComponents from './ui-draw-components.js'
-import uiLayoutStyle from './ui-layout-style.js'
 import uiStateSprites from './ui-state-sprites.js'
 import uiPackExport from './ui-pack-export.js'
 import vfxParticleParams from './vfx-particle-params.js'
@@ -41,8 +41,8 @@ export const FEATURES = [
   sceneObjectCollision,
   sceneLayerZ,
   sceneMapExport,
+  sceneMapExpand,
   uiDrawComponents,
-  uiLayoutStyle,
   uiStateSprites,
   uiPackExport,
   vfxParticleParams,

@@ -10,12 +10,11 @@ import { Spinner } from '@/components/ui/spinner'
 import './App.css'
 
 const ElementGenerate = lazy(() => import('./pages/ElementGenerate/ElementGenerate'))
-const ElementCustomize = lazy(() => import('./pages/ElementCustomize/ElementCustomize'))
 const VideoGenerate = lazy(() => import('./pages/VideoGenerate/VideoGenerate'))
 const VideoFrame = lazy(() => import('./pages/VideoFrame/VideoFrame'))
 const SoundEffect = lazy(() => import('./pages/SoundEffect/SoundEffect'))
 const PixelTools = lazy(() => import('./pages/PixelTools/PixelTools'))
-const LevelEditor = lazy(() => import('./pages/LevelEditor/LevelEditor'))
+const MapEditor = lazy(() => import('./pages/LevelEditor/LevelEditor'))
 const AssetLibrary = lazy(() => import('./pages/AssetLibrary/AssetLibrary'))
 const LayerEditor = lazy(() => import('./pages/LayerEditor/LayerEditor'))
 const ParticleStudio = lazy(() => import('./pages/ParticleStudio/ParticleStudio'))
@@ -28,8 +27,8 @@ const PageLoading = () => (
   </div>
 )
 
-const WORKSPACE_ROUTES = ['/generate', '/customize', '/video-generate']
-const ATELIER_ROUTES = ['/video-frame', '/pixel-tools', '/scene', '/library', '/layer-editor', '/map-editor', '/level-editor', '/particle-studio', '/ui-studio']
+const WORKSPACE_ROUTES = ['/generate', '/video-generate']
+const ATELIER_ROUTES = ['/video-frame', '/pixel-tools', '/library', '/layer-editor', '/map-editor', '/particle-studio', '/ui-studio']
 const STUDIO_ROUTES = ['/video-frame', '/pixel-tools']
 
 function AppLayout() {
@@ -62,14 +61,13 @@ function AppLayout() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/generate" element={<ElementGenerate />} />
+            <Route path="/customize" element={<Navigate to="/generate" replace />} />
             <Route path="/video-generate" element={<VideoGenerate />} />
-            <Route path="/customize" element={<ElementCustomize />} />
             <Route path="/video-frame" element={<VideoFrame />} />
             <Route path="/sound-effect" element={<SoundEffect />} />
             <Route path="/pixel-tools" element={<PixelTools />} />
-            <Route path="/scene" element={<Navigate to="/level-editor" replace />} />
-            <Route path="/map-editor" element={<Navigate to="/level-editor" replace />} />
-            <Route path="/level-editor" element={<LevelEditor />} />
+            <Route path="/map-editor" element={<MapEditor />} />
+            <Route path="/level-editor" element={<Navigate to="/map-editor" replace />} />
             <Route path="/library" element={<AssetLibrary />} />
             <Route path="/layer-editor" element={<LayerEditor />} />
             <Route path="/particle-studio" element={<ParticleStudio />} />

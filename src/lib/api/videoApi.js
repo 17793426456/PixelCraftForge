@@ -8,9 +8,10 @@ export function createTextToVideo(body) {
   })
 }
 
-export function createImageToVideo({ image, prompt, ratio, duration, resolution, generateAudio, watermark, category }) {
+export function createImageToVideo({ image, lastImage, prompt, ratio, duration, resolution, generateAudio, watermark, category }) {
   const form = new FormData()
   form.append('image', image)
+  if (lastImage) form.append('lastImage', lastImage)
   form.append('prompt', prompt)
   form.append('ratio', ratio)
   form.append('duration', String(duration))

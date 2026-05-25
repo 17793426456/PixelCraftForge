@@ -29,7 +29,7 @@ export default function EfficiencyHub() {
     const entry = ENTRIES.find((e) => e.id === active)
     return (
       <div>
-        <Button variant="ghost" className="mb-4" onClick={() => setActive(null)}>
+        <Button variant="ghost" className="mb-4 px-4" onClick={() => setActive(null)}>
           <ArrowLeft />
           返回效率工具
         </Button>
@@ -45,20 +45,20 @@ export default function EfficiencyHub() {
   return (
     <div>
       <FeatureCallout feature={imageTransformFilter} />
-      <p className="mb-5 block text-sm text-muted-foreground">
+      <p className="mb-5 block px-3 py-2 text-center text-sm leading-relaxed text-muted-foreground">
         浏览器端批量处理，无需登录或后端服务。
       </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {ENTRIES.map(({ id, Icon, title, desc }) => (
           <Card
             key={id}
-            className="h-full cursor-pointer transition-shadow hover:shadow-md"
+            className="h-full cursor-pointer text-center transition-shadow hover:shadow-md"
             onClick={() => setActive(id)}
           >
-            <CardHeader>
-              <Icon className="mb-3 size-7 text-[#b55233]" />
-              <CardTitle className="text-base">{title}</CardTitle>
-              <CardDescription>{desc}</CardDescription>
+            <CardHeader className="items-center px-5 pb-2 pt-5 text-center">
+              <Icon className="mx-auto mb-3 size-7 text-[#b55233]" />
+              <CardTitle className="w-full text-center text-base">{title}</CardTitle>
+              <CardDescription className="px-2 text-center leading-relaxed">{desc}</CardDescription>
             </CardHeader>
             <CardContent />
           </Card>

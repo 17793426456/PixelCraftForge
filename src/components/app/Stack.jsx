@@ -10,7 +10,7 @@ export default function Stack({
   align,
   style,
 }) {
-  const gap = size === 'small' ? 'gap-2' : size === 'large' ? 'gap-6' : 'gap-4'
+  const gap = size === 'small' ? 'gap-2.5' : size === 'large' ? 'gap-5' : 'gap-3'
   return (
     <div
       className={cn(
