@@ -5,7 +5,13 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores([
+    'dist',
+    '.vite',
+    'public/iconfont.js',
+    'scripts/vf-side-widgets.snippet.jsx',
+    'src/lib/frameRonin/pixelliseWorker.js',
+  ]),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -16,6 +22,13 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+    rules: {
+      'no-empty': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/preserve-manual-memoization': 'warn',
+      'react-refresh/only-export-components': 'warn',
     },
   },
 ])

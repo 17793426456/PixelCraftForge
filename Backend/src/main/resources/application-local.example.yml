@@ -1,0 +1,34 @@
+# 复制为 application-local.yml（已被 .gitignore 忽略），按本地环境填写。
+# 也可通过环境变量覆盖，见 Backend/run-local.ps1 与项目根 .env.example
+
+spring:
+  datasource:
+    # 腾讯云外网（本机开发）
+    url: jdbc:mysql://cd-cdb-83ftf614.sql.tencentcdb.com:25007/pixel_craft_forge?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: root
+    password: 你的数据库密码
+
+    # 本地 Docker MySQL（docker compose --profile local-mysql up -d 后启用）
+    # url: jdbc:mysql://localhost:3307/pixel_craft_forge?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    # username: pixelcraft
+    # password: pixelcraft
+
+# 火山方舟（文生图 Seedream / 文生视频 Seedance）
+seedream:
+  api:
+    key: 你的ARK_API_KEY
+
+seedance:
+  api:
+    key: 你的ARK_API_KEY
+
+# 存储：local 使用 ./uploads + /uploads/** 静态资源；oss 使用公网 URL
+app:
+  storage:
+    type: oss
+  oss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: 你的AccessKeyId
+    access-key-secret: 你的AccessKeySecret
+    bucket: 你的Bucket
+    public-base-url: https://你的Bucket.oss-cn-beijing.aliyuncs.com

@@ -1,0 +1,57 @@
+.feature-catalog-section {
+  margin-bottom: 28px;
+}
+
+.feature-catalog-cat {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.feature-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.feature-catalog-card {
+  height: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.feature-catalog-card:hover {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.06);
+}
+
+.feature-catalog-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.feature-catalog-card-head strong {
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.feature-catalog-card p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.feature-catalog-link {
+  font-size: 12px;
+  color: #c084fc;
+}

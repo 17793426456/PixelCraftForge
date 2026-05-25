@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Button, Radio, Space, Upload, message } from 'antd'
-import { DownloadOutlined, ClearOutlined } from '@ant-design/icons'
+import { Download, Eraser, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import FileDropzone from '@/components/app/FileDropzone'
+import AppSegmented from '@/components/app/AppSegmented'
+import Stack from '@/components/app/Stack'
+import { message } from '@/lib/ui/notify'
 import {
   getWatermarkSize,
   getWatermarkParams,
@@ -10,7 +14,6 @@ import {
 } from '../../lib/frameRonin/geminiWatermark.js'
 import { triggerDownload } from '../../lib/frameRonin/gifUtils.js'
 
-const { Dragger } = Upload
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.webp'
 
 export default function GeminiWatermark() {
@@ -99,41 +102,53 @@ export default function GeminiWatermark() {
       <p className="pixel-tool-hint">
         去除 Gemini 生成图片右下角可见水印（算法参考 GeminiWatermarkTool，仅处理可见水印）。
       </p>
-      <Dragger
+      <FileDropzone
         accept={IMAGE_ACCEPT}
         maxCount={1}
-        beforeUpload={(f) => { setFile(f); return false }}
-        onRemove={() => setFile(null)}
-      >
-        <p>上传 PNG / JPG / WebP</p>
-      </Dragger>
+        title="上传 PNG / JPG / WebP"
+        onFiles={(files) => setFile(files[0] ?? null)}
+      />
+      {file && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          已选：{file.name}
+          {' '}
+          <button type="button" className="text-primary underline" onClick={() => setFile(null)}>清除</button>
+        </p>
+      )}
 
       {file && imageUrl && (
         <>
-          <Space wrap style={{ margin: '16px 0' }}>
+          <Stack wrap style={{ margin: '16px 0' }} align="center">
             <span style={{ color: 'var(--color-text-secondary)' }}>水印尺寸</span>
-            <Radio.Group value={sizeMode} onChange={(e) => setSizeMode(e.target.value)} optionType="button" size="small">
-              <Radio.Button value="auto">自动</Radio.Button>
-              <Radio.Button value="48">48×48</Radio.Button>
-              <Radio.Button value="96">96×96</Radio.Button>
-            </Radio.Group>
-          </Space>
-          <Space wrap className="pixel-tool-actions">
-            <Button type="primary" icon={<ClearOutlined />} loading={processing} onClick={() => { void processImage() }}>
+            <AppSegmented
+              value={sizeMode}
+              onChange={setSizeMode}
+              options={[
+                { label: '自动', value: 'auto' },
+                { label: '48×48', value: '48' },
+                { label: '96×96', value: '96' },
+              ]}
+            />
+          </Stack>
+          <Stack wrap className="pixel-tool-actions">
+            <Button disabled={processing} onClick={() => { void processImage() }}>
+              {processing && <Loader2 className="animate-spin" />}
+              <Eraser />
               去除水印
             </Button>
             {resultUrl && (
               <Button
-                icon={<DownloadOutlined />}
+                variant="outline"
                 onClick={async () => {
                   const blob = await fetch(resultUrl).then((r) => r.blob())
                   triggerDownload(blob, `${file.name.replace(/\.[^.]+$/, '')}-no-watermark.png`)
                 }}
               >
+                <Download />
                 下载结果
               </Button>
             )}
-          </Space>
+          </Stack>
           <div className="pixel-preview-row">
             <div className="pixel-preview-box">
               <strong>原图</strong>

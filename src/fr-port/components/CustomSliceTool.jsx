@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Button, InputNumber, message, Radio, Space, Typography, Upload } from 'antd'
-import { DownloadOutlined } from '@ant-design/icons'
+import { Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
+import FileDropzone from '@/components/app/FileDropzone'
+import NumberInput from '@/components/app/NumberInput'
+import Stack from '@/components/app/Stack'
+import AppSegmented from '@/components/app/AppSegmented'
+import { message } from '@/lib/ui/notify'
 import { superSplitByTransparent } from '../../lib/frameRonin/superSplitTransparent.js'
-import { canvasToBlob, loadImageFromFile, triggerDownload } from '../../lib/frameRonin/gifUtils.js'
+import { loadImageFromFile, triggerDownload } from '../../lib/frameRonin/gifUtils.js'
 import JSZip from 'jszip'
-
-const { Dragger } = Upload
-const { Text } = Typography
 
 const ACCEPT = ['.png', '.jpg', '.jpeg', '.webp']
 
@@ -107,37 +110,39 @@ export default function CustomSliceTool() {
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Dragger
+    <Stack direction="vertical" size="large" style={{ width: '100%' }}>
+      <FileDropzone
         accept={ACCEPT.join(',')}
         maxCount={1}
-        beforeUpload={(f) => {
-          setFile(f)
-          return false
-        }}
-        showUploadList={!!file}
-        onRemove={() => setFile(null)}
-      >
-        <p>点击或拖拽上传精灵图</p>
-      </Dragger>
+        title="点击或拖拽上传精灵图"
+        onFiles={(files) => setFile(files[0] ?? null)}
+      />
+      {file && (
+        <p className="text-sm text-muted-foreground">{file.name}</p>
+      )}
       {preview && (
         <img src={preview} alt="" style={{ maxWidth: '100%', maxHeight: 320, imageRendering: 'pixelated' }} />
       )}
-      <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
-        <Radio.Button value="grid">网格切分</Radio.Button>
-        <Radio.Button value="transparent">透明区域切分</Radio.Button>
-      </Radio.Group>
+      <AppSegmented
+        value={mode}
+        onChange={setMode}
+        options={[
+          { label: '网格切分', value: 'grid' },
+          { label: '透明区域切分', value: 'transparent' },
+        ]}
+      />
       {mode === 'grid' && (
-        <Space wrap>
-          <Text>列</Text>
-          <InputNumber min={1} max={64} value={cols} onChange={(v) => setCols(v ?? 4)} />
-          <Text>行</Text>
-          <InputNumber min={1} max={64} value={rows} onChange={(v) => setRows(v ?? 4)} />
-        </Space>
+        <Stack wrap align="center">
+          <span className="text-sm text-muted-foreground">列</span>
+          <NumberInput min={1} max={64} value={cols} onChange={(v) => setCols(v ?? 4)} />
+          <span className="text-sm text-muted-foreground">行</span>
+          <NumberInput min={1} max={64} value={rows} onChange={(v) => setRows(v ?? 4)} />
+        </Stack>
       )}
-      <Button type="primary" icon={<DownloadOutlined />} loading={busy} onClick={exportZip} disabled={!file}>
+      <Button disabled={!file || busy} onClick={exportZip}>
+        {busy ? <Spinner /> : <Download />}
         导出 ZIP
       </Button>
-    </Space>
+    </Stack>
   )
 }

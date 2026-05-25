@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import {
   Button, Upload, Checkbox, message, Badge, Input, Tooltip, Dropdown, ColorPicker,
-} from 'antd'
+} from '@/components/app/wrapped-ui'
 import {
   ThunderboltOutlined, UploadOutlined, ReloadOutlined, DownOutlined, SaveOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import IconFont from '../../components/IconFont/IconFont'
+import uiLayoutStyle from '../../constants/features/ui-layout-style.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
+import { applyLocalTransform } from '../../lib/customize/localImageTransform.js'
+import { saveDataUrlToLibrary } from '../../lib/assets/saveToLibrary.js'
+import { resolveMediaUrl } from '../../lib/api/mediaUrl.js'
+import { triggerDownload } from '../../lib/assets/imageExport.js'
 import '../ElementGenerate/ElementGenerate.css'
 import './ElementCustomize.css'
 
@@ -33,8 +39,9 @@ export default function ElementCustomize() {
   const [keepStructure, setKeepStructure] = useState(DEFAULTS.keepStructure)
   const [activeAttr, setActiveAttr] = useState(DEFAULTS.activeAttr)
   const [previewVersion, setPreviewVersion] = useState(0)
+  const [processedPreview, setProcessedPreview] = useState(null)
   const [filterStatus, setFilterStatus] = useState('全部素材')
-  const [credits] = useState(40)
+  const [targetColor, setTargetColor] = useState('#a855f7')
 
   const handleImport = (info) => {
     const files = info.fileList.map((f, i) => ({
@@ -48,17 +55,32 @@ export default function ElementCustomize() {
     message.success(`成功导入 ${files.length} 个素材`)
   }
 
-  const handleModify = () => {
+  const handleModify = async () => {
     if (!selectedElement || !modifyPrompt.trim()) {
       message.warning('请选择素材并输入修改指令')
       return
     }
-    setPreviewVersion(v => v + 1)
-    setImportedElements(prev => prev.map(el =>
-      el.id === selectedElement.id ? { ...el, modified: true } : el
-    ))
-    setSelectedElement(prev => prev ? { ...prev, modified: true } : prev)
-    message.success('修改已应用')
+    if (!selectedElement.url) {
+      message.warning('当前素材无预览图')
+      return
+    }
+    try {
+      const dataUrl = await applyLocalTransform(selectedElement.url, {
+        activeAttr,
+        prompt: modifyPrompt,
+        targetColor: activeAttr === 'color' ? targetColor : undefined,
+        keepStructure,
+      })
+      setProcessedPreview(dataUrl)
+      setPreviewVersion((v) => v + 1)
+      setImportedElements((prev) => prev.map((el) =>
+        el.id === selectedElement.id ? { ...el, modified: true, processedUrl: dataUrl } : el,
+      ))
+      setSelectedElement((prev) => (prev ? { ...prev, modified: true, processedUrl: dataUrl } : prev))
+      message.success('已应用本地滤镜预览（可对接 AI API 获得更高质量）')
+    } catch {
+      message.error('预览处理失败')
+    }
   }
 
   const handleReset = () => {
@@ -81,9 +103,36 @@ export default function ElementCustomize() {
     return true
   })
 
+  const [credits] = useState(40)
+
+  const handleSave = async () => {
+    const targets = importedElements.filter((el) => el.processedUrl || (el.id === selectedElement?.id && processedPreview))
+    if (!targets.length) {
+      message.warning('请先应用修改后再保存')
+      return
+    }
+    try {
+      for (const el of targets) {
+        const url = el.processedUrl || processedPreview
+        if (!url) continue
+        const res = await fetch(resolveMediaUrl(url))
+        const blob = await res.blob()
+        triggerDownload(blob, `${el.name.replace(/\.[^.]+$/, '')}_modified.png`)
+        await saveDataUrlToLibrary(url, `${el.name.replace(/\.[^.]+$/, '')}_modified.png`, {
+          funcType: '道具物品类',
+          folder: '元素改造',
+        })
+      }
+      message.success(`已下载并入库 ${targets.length} 个改造结果`)
+    } catch {
+      message.error('保存失败')
+    }
+  }
+
   return (
     <div className="jm-workspace cust-workspace">
       <aside className="jm-panel">
+        <FeatureCallout feature={uiLayoutStyle} />
         <div className="jm-panel-header">
           <h1 className="jm-panel-title">元素改造</h1>
           <Tooltip title="重置参数">
@@ -150,7 +199,7 @@ export default function ElementCustomize() {
             {activeAttr === 'color' && (
               <div className="jm-opt-group cust-color-row">
                 <span className="jm-opt-label">目标色</span>
-                <ColorPicker defaultValue="#a855f7" />
+                <ColorPicker value={targetColor} onChange={(c) => setTargetColor(c.toHexString())} />
               </div>
             )}
 
@@ -182,8 +231,8 @@ export default function ElementCustomize() {
               <IconFont type="icon-flash" /> {credits}
             </span>
           </Button>
-          <Button block className="cust-save-btn" icon={<SaveOutlined />}>
-            保存结果
+          <Button block className="cust-save-btn" icon={<SaveOutlined />} onClick={() => { void handleSave() }}>
+            保存结果（下载 + 入库）
           </Button>
         </div>
       </aside>
@@ -214,8 +263,12 @@ export default function ElementCustomize() {
           ) : selectedElement ? (
             <div className="cust-preview-wrap">
               <div className="cust-preview-stage">
-                {selectedElement.url ? (
-                  <img src={selectedElement.url} alt="预览" className="cust-preview-image" />
+                {processedPreview || selectedElement.processedUrl || selectedElement.url ? (
+                  <img
+                    src={processedPreview || selectedElement.processedUrl || selectedElement.url}
+                    alt="预览"
+                    className="cust-preview-image"
+                  />
                 ) : (
                   <IconFont type="icon-game" className="cust-preview-placeholder" />
                 )}

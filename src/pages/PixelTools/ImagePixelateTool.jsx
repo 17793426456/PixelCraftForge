@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Button, InputNumber, message, Slider, Space, Switch, Typography, Upload } from 'antd'
-import { DownloadOutlined } from '@ant-design/icons'
+import { Download, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import FileDropzone from '@/components/app/FileDropzone'
+import NumberInput from '@/components/app/NumberInput'
+import Stack from '@/components/app/Stack'
+import { message } from '@/lib/ui/notify'
 import { runPixelliseRestore, maxSafeUpscaleForImage } from '../../lib/frameRonin/pixellise.js'
 import { triggerDownload } from '../../lib/frameRonin/gifUtils.js'
-
-const { Dragger } = Upload
-const { Text } = Typography
+import { revokeObjectUrl } from './pixelToolUtils.js'
 
 const STATUS_ZH = {
   pixelateAdvancedProgressLoadImage: '加载图片…',
@@ -33,7 +38,7 @@ export default function ImagePixelateTool() {
     if (!file) {
       setPreview(null)
       setMaxUpscale(7)
-      return
+      return undefined
     }
     const u = URL.createObjectURL(file)
     setPreview(u)
@@ -42,15 +47,10 @@ export default function ImagePixelateTool() {
       setMaxUpscale(maxSafeUpscaleForImage(img.naturalWidth, img.naturalHeight))
     }
     img.src = u
-    return () => URL.revokeObjectURL(u)
+    return () => revokeObjectUrl(u)
   }, [file])
 
-  useEffect(
-    () => () => {
-      if (resultUrl) URL.revokeObjectURL(resultUrl)
-    },
-    [resultUrl],
-  )
+  useEffect(() => () => revokeObjectUrl(resultUrl), [resultUrl])
 
   const run = async () => {
     if (!file) {
@@ -65,9 +65,8 @@ export default function ImagePixelateTool() {
         { upscale, numColors, scaleResult, transparentBackground: transparentBg },
         (key) => setStatus(STATUS_ZH[key] ?? key),
       )
-      if (resultUrl) URL.revokeObjectURL(resultUrl)
-      const url = URL.createObjectURL(blob)
-      setResultUrl(url)
+      revokeObjectUrl(resultUrl)
+      setResultUrl(URL.createObjectURL(blob))
       if (upscaleCapped) {
         message.info(`图片较大，放大倍数已限制为 ${upscaleUsed}`)
       } else {
@@ -82,56 +81,105 @@ export default function ImagePixelateTool() {
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Text type="secondary">
+    <div className="pixel-tool-panel">
+      <p className="pixel-tool-hint">
         基于 OpenCV.js 的高级像素化还原（浏览器端运行，首次加载 OpenCV 可能较慢）。
-      </Text>
-      <Dragger
+      </p>
+
+      <FileDropzone
         accept={ACCEPT.join(',')}
         maxCount={1}
-        beforeUpload={(f) => {
-          setFile(f)
-          return false
+        title="拖拽或点击上传待像素化图片"
+        hint="支持 PNG / JPG / WebP"
+        onFiles={(files) => {
+          const f = files[0]
+          if (f) {
+            setFile(f)
+            revokeObjectUrl(resultUrl)
+            setResultUrl(null)
+          }
         }}
-        showUploadList={!!file}
-        onRemove={() => setFile(null)}
-      >
-        <p>上传待像素化图片</p>
-      </Dragger>
-      {preview && (
-        <img src={preview} alt="" style={{ maxWidth: 320, maxHeight: 240, imageRendering: 'pixelated' }} />
-      )}
-      <div>
-        <Text>检测放大倍数（1–{maxUpscale}）</Text>
-        <Slider min={1} max={maxUpscale} value={upscale} onChange={setUpscale} />
-      </div>
-      <div>
-        <Text>颜色数量</Text>
-        <Slider min={4} max={64} value={numColors} onChange={setNumColors} />
-      </div>
-      <div>
-        <Text>输出缩放</Text>
-        <InputNumber min={1} max={5} value={scaleResult} onChange={(v) => setScaleResult(v ?? 1)} />
-      </div>
-      <Switch checked={transparentBg} onChange={setTransparentBg} checkedChildren="透明底" unCheckedChildren="不透明" />
-      <Button type="primary" loading={busy} onClick={run} disabled={!file}>
-        {status || '开始像素化'}
-      </Button>
-      {resultUrl && (
-        <Space direction="vertical">
-          <img src={resultUrl} alt="" style={{ maxWidth: '100%', imageRendering: 'pixelated' }} />
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={async () => {
-              const res = await fetch(resultUrl)
-              const blob = await res.blob()
-              triggerDownload(blob, 'pixelated.png')
+      />
+      {file && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          已选：{file.name}
+          {' '}
+          <button
+            type="button"
+            className="text-primary underline"
+            onClick={() => {
+              setFile(null)
+              revokeObjectUrl(resultUrl)
+              setResultUrl(null)
             }}
           >
-            下载结果
-          </Button>
-        </Space>
+            清除
+          </button>
+        </p>
       )}
-    </Space>
+
+      {file && (
+        <>
+          <Stack wrap style={{ marginTop: 16 }} align="center">
+            <span className="pt-brush-label">检测放大 {upscale}×（最大 {maxUpscale}）</span>
+            <Slider
+              min={1}
+              max={maxUpscale}
+              value={[upscale]}
+              onValueChange={([v]) => setUpscale(v)}
+              className="w-40"
+            />
+            <span className="pt-brush-label">颜色数 {numColors}</span>
+            <Slider
+              min={4}
+              max={64}
+              value={[numColors]}
+              onValueChange={([v]) => setNumColors(v)}
+              className="w-[120px]"
+            />
+            <span className="pt-brush-label">输出缩放</span>
+            <NumberInput min={1} max={5} value={scaleResult} onChange={setScaleResult} />
+            <div className="flex items-center gap-2">
+              <Switch checked={transparentBg} onCheckedChange={setTransparentBg} id="transparent-bg" />
+              <Label htmlFor="transparent-bg">{transparentBg ? '透明底' : '不透明'}</Label>
+            </div>
+          </Stack>
+
+          <div className="pixel-tool-actions" style={{ marginTop: 12 }}>
+            <Button disabled={busy} onClick={() => { void run() }}>
+              {busy && <Loader2 className="animate-spin" />}
+              {status || '开始像素化'}
+            </Button>
+            {resultUrl && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const res = await fetch(resultUrl)
+                  triggerDownload(await res.blob(), 'pixelated.png')
+                }}
+              >
+                <Download />
+                下载结果
+              </Button>
+            )}
+          </div>
+
+          <div className="pixel-preview-row">
+            {preview && (
+              <div className="pixel-preview-box">
+                <strong>原图</strong>
+                <img src={preview} alt="原图" style={{ imageRendering: 'auto' }} />
+              </div>
+            )}
+            {resultUrl && (
+              <div className="pixel-preview-box">
+                <strong>像素化结果</strong>
+                <img src={resultUrl} alt="像素化结果" style={{ imageRendering: 'pixelated' }} />
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
   )
 }

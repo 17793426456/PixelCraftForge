@@ -1,0 +1,353 @@
+/* 内容页高级布局：非对称分区 / 分层质感 / 入场动效 */
+
+.atelier-page-wrap {
+  position: relative;
+  width: 100%;
+  min-height: calc(100dvh - var(--layout-padding-y) - var(--layout-padding-bottom));
+}
+
+.atelier-page-wrap .vf-page-bg,
+.atelier-page-wrap .vf-page-grid {
+  position: fixed;
+}
+
+.atelier-page {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 4px 36px;
+}
+
+.atelier-page--wide {
+  max-width: 1560px;
+}
+
+/* —— 标题区：左对齐，非居中 —— */
+.atelier-hero {
+  margin-bottom: 24px;
+  padding-top: 2px;
+}
+
+.atelier-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.atelier-title-row .anticon {
+  font-size: 26px;
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.atelier-title {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  background: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.atelier-subtitle {
+  margin: 0;
+  max-width: 680px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--jm-text-secondary);
+}
+
+/* —— 网格分区 —— */
+.atelier-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+  gap: 22px;
+  align-items: start;
+}
+
+.atelier-layout--triple {
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(220px, 260px);
+}
+
+.atelier-layout--library {
+  grid-template-columns: minmax(220px, 268px) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.atelier-main {
+  min-width: 0;
+}
+
+.atelier-aside,
+.atelier-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 10px;
+}
+
+.atelier-main .vf-page-center {
+  max-width: none;
+  margin: 0;
+  width: 100%;
+}
+
+/* —— 玻璃质感模块 —— */
+.atelier-panel {
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+
+.atelier-panel:hover {
+  border-color: rgba(168, 85, 247, 0.22);
+  box-shadow:
+    0 10px 36px rgba(168, 85, 247, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.atelier-panel--shift {
+  transform: translateY(10px);
+}
+
+.atelier-panel--shift-2 {
+  transform: translateY(18px);
+}
+
+.atelier-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--jm-text-muted);
+}
+
+.atelier-panel-title .anticon {
+  font-size: 14px;
+  color: var(--color-primary-light);
+}
+
+.atelier-tip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.atelier-tip-list li {
+  position: relative;
+  padding-left: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--jm-text-secondary);
+}
+
+.atelier-tip-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+}
+
+.atelier-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  color: var(--jm-text-secondary);
+}
+
+.atelier-stat-row:last-child {
+  border-bottom: none;
+}
+
+.atelier-stat-value {
+  font-weight: 700;
+  color: var(--color-primary-light);
+  white-space: nowrap;
+}
+
+.atelier-divider {
+  height: 1px;
+  margin: 12px 0;
+  background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.35), transparent);
+}
+
+.atelier-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.atelier-chip {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--jm-text-secondary);
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.18);
+}
+
+/* —— 入场动画 —— */
+@keyframes atelier-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.atelier-enter {
+  animation: atelier-fade-up 0.48s ease backwards;
+}
+
+.atelier-enter--1 { animation-delay: 0.04s; }
+.atelier-enter--2 { animation-delay: 0.1s; }
+.atelier-enter--3 { animation-delay: 0.16s; }
+.atelier-enter--4 { animation-delay: 0.22s; }
+
+.atelier-stagger > * {
+  animation: atelier-fade-up 0.42s ease backwards;
+}
+
+.atelier-stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.atelier-stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.atelier-stagger > *:nth-child(3) { animation-delay: 0.11s; }
+.atelier-stagger > *:nth-child(4) { animation-delay: 0.15s; }
+.atelier-stagger > *:nth-child(5) { animation-delay: 0.19s; }
+.atelier-stagger > *:nth-child(6) { animation-delay: 0.23s; }
+.atelier-stagger > *:nth-child(n+7) { animation-delay: 0.27s; }
+
+/* —— 空状态 —— */
+.atelier-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 56px 24px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(168, 85, 247, 0.2);
+}
+
+.atelier-empty-icon {
+  display: block;
+  margin: 0 auto 14px;
+  font-size: 48px;
+  color: var(--color-primary-light);
+  opacity: 0.5;
+}
+
+.atelier-empty-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--jm-text);
+}
+
+.atelier-empty-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--jm-text-muted);
+}
+
+/* —— 深色工作室卡片 —— */
+.atelier-studio-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.atelier-studio-card:hover {
+  box-shadow:
+    0 10px 36px rgba(168, 85, 247, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.atelier-studio-card .ant-card-head {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.atelier-studio-card .ant-card-head-title {
+  font-weight: 600;
+  color: var(--jm-text);
+}
+
+@media (max-width: 1100px) {
+  .atelier-layout--triple {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+  }
+
+  .atelier-rail-left {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .atelier-layout,
+  .atelier-layout--triple,
+  .atelier-layout--library {
+    grid-template-columns: 1fr;
+  }
+
+  .atelier-aside,
+  .atelier-rail {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .atelier-aside .atelier-panel,
+  .atelier-rail .atelier-panel {
+    flex: 1 1 240px;
+  }
+
+  .atelier-panel--shift,
+  .atelier-panel--shift-2 {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atelier-enter,
+  .atelier-stagger > *,
+  .atelier-panel {
+    animation: none;
+    transition: none;
+  }
+}

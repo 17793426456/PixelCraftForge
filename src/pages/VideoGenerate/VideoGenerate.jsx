@@ -1,12 +1,21 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Button, Upload, Checkbox, Tag, message, Space, Input, Tooltip, Dropdown, Progress, Slider,
-} from 'antd'
+} from '@/components/app/wrapped-ui'
 import {
   ThunderboltOutlined, HighlightOutlined, PictureOutlined, PlayCircleOutlined,
   ReloadOutlined, InfoCircleOutlined, RightOutlined, DownOutlined, PauseCircleOutlined,
-} from '@ant-design/icons'
+} from '@/lib/icons/antd-lucide'
 import IconFont from '../../components/IconFont/IconFont'
+import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
+import vfxPresets from '../../constants/features/vfx-presets.js'
+import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
+import { ApiError } from '../../lib/api/client.js'
+import { resolveAssetCategory } from '../../lib/api/assetCategory.js'
+import { resolveMediaUrl } from '../../lib/api/mediaUrl.js'
+import {
+  createImageToVideo, createTextToVideo, parseDurationSeconds, parseResolutionApi, pollVideoTask,
+} from '../../lib/api/videoApi.js'
 import '../ElementGenerate/ElementGenerate.css'
 import './VideoGenerate.css'
 
@@ -64,6 +73,7 @@ export default function VideoGenerate() {
   const [motion, setMotion] = useState(DEFAULTS.motion)
   const [loop, setLoop] = useState(DEFAULTS.loop)
   const [refImage, setRefImage] = useState(DEFAULTS.refImage)
+  const [refImageFile, setRefImageFile] = useState(null)
   const [refVideo, setRefVideo] = useState(DEFAULTS.refVideo)
   const [credits] = useState(60)
   const [results, setResults] = useState([])
@@ -72,6 +82,7 @@ export default function VideoGenerate() {
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
   const [playingId, setPlayingId] = useState(null)
+  const pollAbortRef = useRef(null)
 
   const currentModel = modelOptions.find(m => m.id === modelId) || modelOptions[0]
 
@@ -100,6 +111,7 @@ export default function VideoGenerate() {
     const file = info.file.originFileObj || info.file
     if (file) {
       setRefImage(URL.createObjectURL(file))
+      setRefImageFile(file)
       message.success('参考图上传成功')
     }
   }
@@ -112,38 +124,91 @@ export default function VideoGenerate() {
     }
   }
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (mode === '文生视频' && !prompt.trim()) {
       message.warning('请输入视频描述后再生成')
       return
     }
-    if (mode === '图生视频' && !refImage) {
+    if (mode === '图生视频' && !refImageFile) {
       message.warning('请上传首帧参考图')
       return
     }
-    if (mode === '视频延长' && !refVideo) {
-      message.warning('请上传待延长视频')
+    if (mode === '视频延长') {
+      message.info('视频延长功能即将上线，当前后端暂未提供该接口')
       return
     }
 
+    pollAbortRef.current?.abort()
+    const abort = new AbortController()
+    pollAbortRef.current = abort
+
     setGenerating(true)
-    setProgress(0)
-    const timer = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(timer)
-          setGenerating(false)
-          setResults(prevResults => [{
-            id: Date.now(),
-            name: `游戏视频_${prevResults.length + 1}`,
-            duration, resolution, ratio, fps, motion, model: currentModel.name, mode,
-          }, ...prevResults])
-          message.success('视频生成完成！')
-          return 100
-        }
-        return prev + 8
+    setProgress(5)
+    const category = resolveAssetCategory({ templateId: selectedTemplate })
+    const durationSec = parseDurationSeconds(duration)
+    const resolutionApi = parseResolutionApi(resolution)
+    const videoPrompt = prompt.trim() || '游戏动画镜头'
+
+    try {
+      let createRes
+      if (mode === '文生视频') {
+        createRes = await createTextToVideo({
+          prompt: videoPrompt,
+          ratio,
+          duration: durationSec,
+          resolution: resolutionApi,
+          generateAudio: true,
+          watermark: false,
+          category,
+        })
+      } else {
+        createRes = await createImageToVideo({
+          image: refImageFile,
+          prompt: videoPrompt,
+          ratio,
+          duration: durationSec,
+          resolution: resolutionApi,
+          generateAudio: true,
+          watermark: false,
+          category,
+        })
+      }
+
+      const task = await pollVideoTask(createRes.taskId, {
+        signal: abort.signal,
+        onProgress: (t) => {
+          const st = (t.status ?? '').toLowerCase()
+          if (st === 'running' || st === 'processing') setProgress(55)
+          else if (st === 'queued') setProgress(25)
+          else setProgress(85)
+        },
       })
-    }, 200)
+
+      const videoUrl = resolveMediaUrl(task.url)
+      setResults((prev) => [{
+        id: Date.now(),
+        name: `游戏视频_${prev.length + 1}`,
+        duration,
+        resolution,
+        ratio,
+        fps,
+        motion,
+        model: currentModel.name,
+        mode,
+        videoUrl,
+        taskId: task.taskId,
+        cached: false,
+      }, ...prev])
+      setProgress(100)
+      message.success('视频生成完成！')
+    } catch (err) {
+      if (err?.name === 'AbortError') return
+      const msg = err instanceof ApiError ? err.message : (err?.message ?? '视频生成失败')
+      message.error(msg)
+    } finally {
+      setGenerating(false)
+      pollAbortRef.current = null
+    }
   }
 
   const timeMenu = {
@@ -158,6 +223,8 @@ export default function VideoGenerate() {
   return (
     <div className="jm-workspace vg-workspace">
       <aside className="jm-panel">
+        <FeatureCallout feature={vfxParticleParams} />
+        <FeatureCallout feature={vfxPresets} />
         <div className="jm-panel-header">
           <h1 className="jm-panel-title">视频生成</h1>
           <Tooltip title="重置参数">
@@ -317,7 +384,7 @@ export default function VideoGenerate() {
           {generating && (
             <Progress percent={progress} size="small" strokeColor={{ from: '#6366f1', to: '#ec4899' }} className="vg-progress" />
           )}
-          <Button type="primary" size="large" block className="jm-generate-btn" onClick={handleGenerate} loading={generating} disabled={generating}>
+          <Button type="primary" size="large" block className="jm-generate-btn" onClick={() => { void handleGenerate() }} loading={generating} disabled={generating}>
             <span className="jm-generate-text">
               <ThunderboltOutlined /> {generating ? '生成中...' : '免费创作'}
             </span>
@@ -364,14 +431,28 @@ export default function VideoGenerate() {
               {filteredResults.map(r => (
                 <div key={r.id} className="vg-result-card">
                   <div className="vg-video-cover">
-                    <IconFont type="icon-video" className="vg-video-icon" />
-                    <button
-                      type="button"
-                      className="vg-play-btn"
-                      onClick={() => setPlayingId(playingId === r.id ? null : r.id)}
-                    >
-                      {playingId === r.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-                    </button>
+                    {r.videoUrl ? (
+                      <video
+                        src={r.videoUrl}
+                        className="vg-ref-preview"
+                        controls={playingId === r.id}
+                        muted
+                        loop
+                        playsInline
+                        onClick={() => setPlayingId(playingId === r.id ? null : r.id)}
+                      />
+                    ) : (
+                      <IconFont type="icon-video" className="vg-video-icon" />
+                    )}
+                    {!r.videoUrl && (
+                      <button
+                        type="button"
+                        className="vg-play-btn"
+                        onClick={() => setPlayingId(playingId === r.id ? null : r.id)}
+                      >
+                        {playingId === r.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                      </button>
+                    )}
                     <span className="vg-duration-badge">{r.duration}</span>
                   </div>
                   <div className="jm-result-meta">

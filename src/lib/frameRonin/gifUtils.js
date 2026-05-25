@@ -60,13 +60,81 @@ export async function extractGifFrames(file) {
   return results
 }
 
-export async function buildGifFromCanvases(canvases, delayMs = 100) {
+export async function getGifInfo(file) {
+  const buffer = await file.arrayBuffer()
+  const gif = parseGIF(buffer)
+  const frames = decompressFrames(gif, true)
+  return {
+    width: gif.lsd.width,
+    height: gif.lsd.height,
+    frameCount: frames.length,
+  }
+}
+
+function canvasWithBackground(canvas, mode, bgColor = '#000000') {
+  const out = document.createElement('canvas')
+  out.width = canvas.width
+  out.height = canvas.height
+  const ctx = out.getContext('2d')
+  if (mode === 'solid') {
+    ctx.fillStyle = bgColor
+    ctx.fillRect(0, 0, out.width, out.height)
+  } else if (mode === 'original') {
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, out.width, out.height)
+  }
+  ctx.drawImage(canvas, 0, 0)
+  return out
+}
+
+export async function extractGifFramesWithOptions(file, options = {}) {
+  const {
+    frameStep = 1,
+    startFrame = 1,
+    endFrame = Infinity,
+    bgMode = 'transparent',
+    bgColor = '#000000',
+  } = options
+
+  const allFrames = await extractGifFrames(file)
+  const start = Math.max(1, startFrame) - 1
+  const end = Math.min(allFrames.length, endFrame === Infinity ? allFrames.length : endFrame)
+
+  const picked = allFrames
+    .slice(start, end)
+    .filter((_, index) => index % Math.max(1, frameStep) === 0)
+
+  if (bgMode === 'transparent') {
+    return picked
+  }
+
+  return Promise.all(
+    picked.map(async (frame) => {
+      const canvas = canvasWithBackground(frame.canvas, bgMode, bgColor)
+      return {
+        ...frame,
+        canvas,
+        blob: await canvasToBlob(canvas),
+      }
+    }),
+  )
+}
+
+export async function previewGifFrames(file, maxFrames = 12) {
+  const frames = await extractGifFrames(file)
+  return frames.slice(0, maxFrames)
+}
+
+export async function buildGifFromCanvases(canvases, delayMs = 100, loopCount = 0) {
   if (!canvases.length) throw new Error('没有可用帧')
-  const width = canvases[0].width
-  const height = canvases[0].height
+  let frames = canvases
+  if (loopCount > 0) {
+    frames = []
+    for (let i = 0; i < loopCount; i += 1) frames.push(...canvases)
+  }
   const gif = GIFEncoder()
 
-  for (const canvas of canvases) {
+  for (const canvas of frames) {
     const ctx = canvas.getContext('2d')
     const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
     const palette = quantize(data, 256)
