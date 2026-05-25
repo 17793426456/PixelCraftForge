@@ -44,14 +44,21 @@ export default function ElementCustomize() {
   const [targetColor, setTargetColor] = useState('#a855f7')
 
   const handleImport = (info) => {
-    const files = info.fileList.map((f, i) => ({
+    const picked = (info.fileList ?? [])
+      .map((f) => f.originFileObj)
+      .filter(Boolean)
+    if (!picked.length) {
+      message.warning('未选择有效图片文件')
+      return
+    }
+    const files = picked.map((file, i) => ({
       id: Date.now() + i,
-      name: f.name,
-      url: f.originFileObj ? URL.createObjectURL(f.originFileObj) : '',
+      name: file.name,
+      url: URL.createObjectURL(file),
       modified: false,
     }))
-    setImportedElements(files)
-    if (files.length > 0) setSelectedElement(files[0])
+    setImportedElements((prev) => [...prev, ...files])
+    setSelectedElement(files[0])
     message.success(`成功导入 ${files.length} 个素材`)
   }
 
@@ -103,7 +110,6 @@ export default function ElementCustomize() {
     return true
   })
 
-  const [credits] = useState(40)
 
   const handleSave = async () => {
     const targets = importedElements.filter((el) => el.processedUrl || (el.id === selectedElement?.id && processedPreview))
@@ -226,9 +232,6 @@ export default function ElementCustomize() {
           <Button type="primary" size="large" block className="jm-generate-btn" onClick={handleModify}>
             <span className="jm-generate-text">
               <ThunderboltOutlined /> 应用修改
-            </span>
-            <span className="jm-generate-credit">
-              <IconFont type="icon-flash" /> {credits}
             </span>
           </Button>
           <Button block className="cust-save-btn" icon={<SaveOutlined />} onClick={() => { void handleSave() }}>

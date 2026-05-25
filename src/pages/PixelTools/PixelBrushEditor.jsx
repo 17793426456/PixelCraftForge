@@ -344,41 +344,42 @@ export default function PixelBrushEditor() {
       </p>
 
       <div className="pt-brush-toolbar">
-        <Space wrap size={[8, 8]}>
+        <Space wrap size={[10, 10]} className="pt-brush-row">
           <Select
+            className="pt-control"
             value={presetValue}
-            style={{ width: 130 }}
+            style={{ width: 136 }}
             options={SIZE_PRESETS.map((p) => ({ value: `${p.w}x${p.h}`, label: p.label }))}
             onChange={(v) => {
-              const p = SIZE_PRESETS.find((x) => `${x.w}x${x.h}` === v)
+              const p = SIZE_PRESETS.find((x) => `${x.w}x${p.h}` === v)
               if (p) changeSize(p)
             }}
           />
           <Tooltip title="铅笔（1 像素）">
-            <Button type={tool === 'pencil' ? 'primary' : 'default'} icon={<EditOutlined />} onClick={() => setTool('pencil')}>铅笔</Button>
+            <Button className="pt-control" size="small" type={tool === 'pencil' ? 'primary' : 'default'} icon={<EditOutlined />} onClick={() => setTool('pencil')}>铅笔</Button>
           </Tooltip>
           <Tooltip title="画笔（可调大小）">
-            <Button type={tool === 'brush' ? 'primary' : 'default'} icon={<FormatPainterOutlined />} onClick={() => setTool('brush')}>画笔</Button>
+            <Button className="pt-control" size="small" type={tool === 'brush' ? 'primary' : 'default'} icon={<FormatPainterOutlined />} onClick={() => setTool('brush')}>画笔</Button>
           </Tooltip>
           <Tooltip title="橡皮擦">
-            <Button type={tool === 'eraser' ? 'primary' : 'default'} icon={<ClearOutlined />} onClick={() => setTool('eraser')}>橡皮</Button>
+            <Button className="pt-control" size="small" type={tool === 'eraser' ? 'primary' : 'default'} icon={<ClearOutlined />} onClick={() => setTool('eraser')}>橡皮</Button>
           </Tooltip>
           <Tooltip title="油漆桶填充">
-            <Button type={tool === 'fill' ? 'primary' : 'default'} icon={<BgColorsOutlined />} onClick={() => setTool('fill')}>填充</Button>
+            <Button className="pt-control" size="small" type={tool === 'fill' ? 'primary' : 'default'} icon={<BgColorsOutlined />} onClick={() => setTool('fill')}>填充</Button>
           </Tooltip>
           <Tooltip title="吸色器">
-            <Button type={tool === 'picker' ? 'primary' : 'default'} icon={<EyeOutlined />} onClick={() => setTool('picker')}>吸色</Button>
+            <Button className="pt-control" size="small" type={tool === 'picker' ? 'primary' : 'default'} icon={<EyeOutlined />} onClick={() => setTool('picker')}>吸色</Button>
           </Tooltip>
-          <Button type={showGrid ? 'primary' : 'default'} icon={<BorderOutlined />} onClick={() => setShowGrid((g) => !g)}>网格</Button>
+          <Button className="pt-control" size="small" type={showGrid ? 'primary' : 'default'} icon={<BorderOutlined />} onClick={() => setShowGrid((g) => !g)}>网格</Button>
           <Tooltip title="撤销 (Ctrl+Z)">
-            <Button icon={<UndoOutlined />} onClick={undo} disabled={!undoStack.length}>撤销</Button>
+            <Button className="pt-control" size="small" icon={<UndoOutlined />} onClick={undo} disabled={!undoStack.length}>撤销</Button>
           </Tooltip>
-          <Button icon={<ClearOutlined />} onClick={clearCanvas}>清空</Button>
+          <Button className="pt-control" size="small" icon={<ClearOutlined />} onClick={clearCanvas}>清空</Button>
         </Space>
 
-        <Divider style={{ margin: '14px 0', borderColor: 'rgba(255,255,255,0.06)' }} />
+        <Divider style={{ margin: '16px 8px', borderColor: 'rgba(255,255,255,0.06)' }} />
 
-        <Space wrap size={[12, 8]} align="center">
+        <Space wrap size={[12, 10]} align="center" className="pt-brush-row">
           <span className="pt-brush-label">颜色</span>
           <ColorPicker
             value={color}
@@ -408,10 +409,10 @@ export default function PixelBrushEditor() {
 
         <div className="pixel-tool-actions pt-brush-actions">
           <Upload showUploadList={false} accept="image/*" beforeUpload={(f) => { void importImage(f); return false }}>
-            <Button icon={<UploadOutlined />}>导入图片</Button>
+            <Button className="pt-control" size="small" icon={<UploadOutlined />}>导入图片</Button>
           </Upload>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={() => { void exportPng() }}>导出 PNG</Button>
-          <Button icon={<SaveOutlined />} onClick={() => { void saveToLibrary() }}>存入仓库</Button>
+          <Button className="pt-control" size="small" type="primary" icon={<DownloadOutlined />} onClick={() => { void exportPng() }}>导出 PNG</Button>
+          <Button className="pt-control" size="small" icon={<SaveOutlined />} onClick={() => { void saveToLibrary() }}>存入仓库</Button>
         </div>
       </div>
 

@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Download, Eraser, Loader2 } from 'lucide-react'
+import { Download, Eraser, Loader2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import FileDropzone from '@/components/app/FileDropzone'
-import AppSegmented from '@/components/app/AppSegmented'
 import Stack from '@/components/app/Stack'
 import { message } from '@/lib/ui/notify'
-import {
-  getWatermarkSize,
-  getWatermarkParams,
-  removeWatermarkReverseAlpha,
-  getEmbeddedAlphaMask,
-  createApproxAlphaMap,
-} from '../../lib/frameRonin/geminiWatermark.js'
+import { removeGeminiWatermarkFromBlob } from '../../lib/frameRonin/geminiWatermark.js'
 import { triggerDownload } from '../../lib/frameRonin/gifUtils.js'
 
 const IMAGE_ACCEPT = '.png,.jpg,.jpeg,.webp'
@@ -21,7 +14,7 @@ export default function GeminiWatermark() {
   const [imageUrl, setImageUrl] = useState(null)
   const [resultUrl, setResultUrl] = useState(null)
   const [processing, setProcessing] = useState(false)
-  const [sizeMode, setSizeMode] = useState('auto')
+  const [lastDetected, setLastDetected] = useState(null)
 
   useEffect(() => {
     if (!file) {
@@ -34,6 +27,7 @@ export default function GeminiWatermark() {
       if (old) URL.revokeObjectURL(old)
       return null
     })
+    setLastDetected(null)
     return () => URL.revokeObjectURL(url)
   }, [file])
 
@@ -42,54 +36,28 @@ export default function GeminiWatermark() {
   }, [resultUrl])
 
   const processImage = async () => {
-    if (!imageUrl || !file) return
+    if (!file) return
     setProcessing(true)
     setResultUrl((old) => {
       if (old) URL.revokeObjectURL(old)
       return null
     })
     try {
-      const img = await new Promise((resolve, reject) => {
-        const image = new Image()
-        image.onload = () => resolve(image)
-        image.onerror = reject
-        image.src = imageUrl
-      })
-
-      const w = img.naturalWidth
-      const h = img.naturalHeight
-      const baseSize = sizeMode === 'auto' ? getWatermarkSize(w, h) : sizeMode === '48' ? 48 : 96
-      const params = getWatermarkParams(w, h, baseSize)
-
-      let alphaMap
-      let mapW
-      let mapH
-      try {
-        const loaded = await getEmbeddedAlphaMask(baseSize)
-        alphaMap = loaded.alpha
-        mapW = loaded.width
-        mapH = loaded.height
-      } catch {
-        alphaMap = createApproxAlphaMap(baseSize)
-        mapW = baseSize
-        mapH = baseSize
-      }
-
-      const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
-      const imageData = ctx.getImageData(0, 0, w, h)
-      const alphaScale = baseSize === 96 ? 0.85 : 1
-      removeWatermarkReverseAlpha(imageData, alphaMap, mapW, mapH, params.x, params.y, 255, alphaScale)
-      ctx.putImageData(imageData, 0, 0)
-
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('导出失败'))), 'image/png')
-      })
+      const { blob, detected, diff, config } = await removeGeminiWatermarkFromBlob(file)
       setResultUrl(URL.createObjectURL(blob))
-      message.success('水印已去除')
+      setLastDetected({ detected, diff, config })
+
+      if (!detected) {
+        message.warning(
+          '未在右下角检测到 Gemini 可见水印。请确认图片由 Gemini 生成且带右下角星标；像素风/实拍图无法用本工具去水印。',
+        )
+      } else {
+        message.success(
+          config
+            ? `水印已去除（${config.logoSize}×${config.logoSize}，边距 ${config.marginRight}px）`
+            : '水印已去除',
+        )
+      }
     } catch (error) {
       message.error(error instanceof Error ? error.message : '处理失败')
     } finally {
@@ -100,12 +68,17 @@ export default function GeminiWatermark() {
   return (
     <div className="pixel-tool-panel">
       <p className="pixel-tool-hint">
-        去除 Gemini 生成图片右下角可见水印（算法参考 GeminiWatermarkTool，仅处理可见水印）。
+        仅适用于 <strong>Gemini / Nano Banana</strong> 生成图右下角的半透明星标水印（逆向 alpha 还原）。
+        不支持普通文字水印、Logo 或 Seedream 等其它平台水印。
+      </p>
+      <p className="pixel-tool-hint pixel-tool-hint--sub">
+        <Info className="mr-1 inline size-4" />
+        自动匹配 36 / 48 / 96 像素水印及新版大边距布局；若无效请换原图导出尺寸或联系反馈。
       </p>
       <FileDropzone
         accept={IMAGE_ACCEPT}
         maxCount={1}
-        title="上传 PNG / JPG / WebP"
+        title="上传 Gemini 生成图（PNG / JPG / WebP）"
         onFiles={(files) => setFile(files[0] ?? null)}
       />
       {file && (
@@ -118,18 +91,6 @@ export default function GeminiWatermark() {
 
       {file && imageUrl && (
         <>
-          <Stack wrap style={{ margin: '16px 0' }} align="center">
-            <span style={{ color: 'var(--color-text-secondary)' }}>水印尺寸</span>
-            <AppSegmented
-              value={sizeMode}
-              onChange={setSizeMode}
-              options={[
-                { label: '自动', value: 'auto' },
-                { label: '48×48', value: '48' },
-                { label: '96×96', value: '96' },
-              ]}
-            />
-          </Stack>
           <Stack wrap className="pixel-tool-actions">
             <Button disabled={processing} onClick={() => { void processImage() }}>
               {processing && <Loader2 className="animate-spin" />}
@@ -149,17 +110,26 @@ export default function GeminiWatermark() {
               </Button>
             )}
           </Stack>
+
+          {lastDetected && !lastDetected.detected && resultUrl && (
+            <p className="pixel-matte-warn">
+              本次处理未检测到有效水印区域（差异 {lastDetected.diff?.toFixed(1) ?? 0}），结果可能与原图几乎相同。
+            </p>
+          )}
+
           <div className="pixel-preview-row">
             <div className="pixel-preview-box">
               <strong>原图</strong>
               <img src={imageUrl} alt="原图" />
             </div>
-            {resultUrl && (
-              <div className="pixel-preview-box">
-                <strong>处理后</strong>
+            <div className="pixel-preview-box">
+              <strong>处理后</strong>
+              {resultUrl ? (
                 <img src={resultUrl} alt="结果" />
-              </div>
-            )}
+              ) : (
+                <p className="pixel-matte-placeholder">点击「去除水印」后预览</p>
+              )}
+            </div>
           </div>
         </>
       )}

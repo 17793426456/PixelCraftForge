@@ -3,6 +3,7 @@
  * 新页面请优先直接使用 @/components/ui/* 与 @/components/app/*，仅复杂场景引用本文件。
  */
 import { forwardRef } from 'react'
+import { Search, X } from 'lucide-react'
 import { Button } from '@/components/app/AppButton'
 import { Input as ShInput } from '@/components/ui/input'
 import { Textarea as ShTextarea } from '@/components/ui/textarea'
@@ -19,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Card as ShCard, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
@@ -40,6 +41,35 @@ const Input = forwardRef(function Input(props, ref) {
 
 Input.TextArea = forwardRef(function TextArea({ rows, ...props }, ref) {
   return <ShTextarea ref={ref} rows={rows} {...props} />
+})
+
+Input.Search = forwardRef(function SearchInput(
+  { value, onChange, placeholder, allowClear, className, style, ...props },
+  ref,
+) {
+  return (
+    <div className={cn('relative', className)} style={style}>
+      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <ShInput
+        ref={ref}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="pl-9 pr-9"
+        {...props}
+      />
+      {allowClear && value ? (
+        <button
+          type="button"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+          aria-label="清除"
+          onClick={() => onChange?.({ target: { value: '' } })}
+        >
+          <X className="size-4" />
+        </button>
+      ) : null}
+    </div>
+  )
 })
 
 function Slider({ value, onChange, min = 0, max = 100, step = 1, className, style, disabled }) {
@@ -111,8 +141,9 @@ function Modal({ open, title, children, onCancel, onOk, footer, width = 520, cla
   )
 }
 
-function Progress({ percent, ...props }) {
-  return <ShProgress value={percent} {...props} />
+function Progress({ percent, value, className, ...props }) {
+  const v = value ?? percent ?? 0
+  return <ShProgress value={v} className={className} {...props} />
 }
 
 function Spin({ tip, size, children }) {
@@ -141,7 +172,7 @@ function SelectWrap({ value, onChange, options = [], style, className, placehold
       onValueChange={(v) => onChange?.(Number.isNaN(Number(v)) ? v : Number(v))}
     >
       <SelectTrigger style={style} className={cn('w-[140px]', className)}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder} className="w-full justify-center text-center" />
       </SelectTrigger>
       <SelectContent>
         {options.map((o) => (
@@ -248,26 +279,46 @@ function Collapse({ items = [], ghost, className, defaultActiveKey }) {
   )
 }
 
-function Dragger({ accept, multiple, beforeUpload, onChange, maxCount, style, className, children }) {
+const UPLOAD_LIST_IGNORE = Symbol('upload-list-ignore')
+
+/** 从 antd Upload / 原生 input 统一取出 File */
+export function resolveUploadFile(file) {
+  if (!file) return null
+  if (file instanceof File || file instanceof Blob) return file
+  if (file.originFileObj instanceof Blob) return file.originFileObj
+  return null
+}
+
+function Dragger({ accept, multiple, beforeUpload, onChange, maxCount, variant, style, className, children }) {
   const handleFiles = (files) => {
-    const list = []
+    const fileList = []
     for (const f of files) {
-      if (beforeUpload?.(f) === false) continue
+      const raw = resolveUploadFile(f) ?? f
       if (beforeUpload) {
-        const r = beforeUpload(f)
-        if (r !== false) list.push(f)
-      } else {
-        list.push(f)
+        const ret = beforeUpload(raw)
+        if (ret === UPLOAD_LIST_IGNORE) continue
       }
-    }
-    if (onChange) {
-      onChange({
-        fileList: list.map((f, i) => ({ uid: String(i), name: f.name, originFileObj: f })),
+      fileList.push({
+        uid: `${Date.now()}-${fileList.length}`,
+        name: raw.name ?? 'file',
+        originFileObj: raw,
+        status: 'done',
       })
+    }
+    if (onChange && fileList.length) {
+      onChange({ fileList })
     }
   }
   return (
-    <FileDropzone accept={accept} multiple={multiple} maxCount={maxCount} className={className} style={style} onFiles={handleFiles}>
+    <FileDropzone
+      accept={accept}
+      multiple={multiple}
+      maxCount={maxCount}
+      variant={variant}
+      className={className}
+      style={style}
+      onFiles={handleFiles}
+    >
       {children}
     </FileDropzone>
   )
@@ -277,18 +328,49 @@ function Upload(props) {
   return <Dragger {...props} />
 }
 Upload.Dragger = Dragger
-Upload.LIST_IGNORE = false
+Upload.LIST_IGNORE = UPLOAD_LIST_IGNORE
+
+function isMenuLabelElement(label) {
+  return label != null && typeof label === 'object'
+}
 
 function DropdownWrap({ menu, children }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
       <DropdownMenuContent>
-        {(menu?.items ?? []).map((item) => (
-          item?.type === 'divider' ? null : (
-            <DropdownMenuItem key={item.key ?? item.label} onClick={item.onClick}>{item.label}</DropdownMenuItem>
+        {(menu?.items ?? []).map((item, i) => {
+          if (item?.type === 'divider') {
+            return <DropdownMenuSeparator key={`div-${i}`} />
+          }
+          const key = item.key ?? (typeof item.label === 'string' ? item.label : `item-${i}`)
+          if (isMenuLabelElement(item.label)) {
+            return (
+              <DropdownMenuItem
+                key={key}
+                className="cursor-pointer p-0 focus:bg-transparent"
+                onSelect={(e) => e.preventDefault()}
+              >
+                {item.label}
+              </DropdownMenuItem>
+            )
+          }
+          return (
+            <DropdownMenuItem
+              key={key}
+              disabled={item.disabled}
+              onSelect={(e) => {
+                if (item.disabled) {
+                  e.preventDefault()
+                  return
+                }
+                item.onClick?.()
+              }}
+            >
+              {item.label}
+            </DropdownMenuItem>
           )
-        ))}
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   )

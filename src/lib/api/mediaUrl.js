@@ -48,3 +48,23 @@ export async function urlToBlob(url) {
   if (!res.ok) throw new Error(`下载资源失败: ${res.status}`)
   return res.blob()
 }
+
+/** 生成结果入库/下载时确保有 blob（OSS 走代理后可再拉取） */
+export async function ensureResultBlob(item) {
+  if (item?.blob) return item.blob
+  const raw = item?.storageUrl ?? item?.url ?? item?.previewUrl ?? item?.videoUrl
+  if (!raw) throw new Error('无可用的媒体地址')
+  return urlToBlob(raw)
+}
+
+export function guessMediaExtension(blob, fallback = 'bin') {
+  const t = blob?.type ?? ''
+  if (t.includes('png')) return 'png'
+  if (t.includes('jpeg') || t.includes('jpg')) return 'jpg'
+  if (t.includes('webp')) return 'webp'
+  if (t.includes('gif')) return 'gif'
+  if (t.includes('webm')) return 'webm'
+  if (t.includes('mp4')) return 'mp4'
+  if (t.includes('video')) return 'mp4'
+  return fallback
+}

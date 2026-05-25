@@ -50,6 +50,7 @@ public class VideoController {
     @PostMapping(value = "/image-to-video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<VideoTaskCreateResponse> imageToVideo(
             @RequestPart("image") MultipartFile image,
+            @RequestPart(value = "lastImage", required = false) MultipartFile lastImage,
             @RequestParam("prompt") @NotBlank(message = "prompt 不能为空") String prompt,
             @RequestParam(value = "ratio", defaultValue = "16:9")
             @Pattern(regexp = "^(adaptive|21:9|16:9|4:3|1:1|3:4|9:16)$", message = "ratio 格式不正确") String ratio,
@@ -62,9 +63,10 @@ public class VideoController {
             @RequestParam("category") @NotNull(message = "category 不能为空") AssetCategory category) {
         VideoGenerateRequest request = buildRequest(
                 prompt, ratio, duration, resolution, generateAudio, watermark, category);
-        log.info("收到图生视频请求, prompt={}, ratio={}, duration={}s, category={}, file={}",
-                prompt, ratio, duration, category, image.getOriginalFilename());
-        return ResponseEntity.ok(videoGenerateService.createImageToVideo(request, image));
+        log.info("收到图生视频请求, prompt={}, ratio={}, duration={}s, category={}, firstFrame={}, lastFrame={}",
+                prompt, ratio, duration, category, image.getOriginalFilename(),
+                lastImage != null && !lastImage.isEmpty() ? lastImage.getOriginalFilename() : null);
+        return ResponseEntity.ok(videoGenerateService.createImageToVideo(request, image, lastImage));
     }
 
     @GetMapping("/tasks/{taskId}")

@@ -9,6 +9,20 @@
   top: 10px;
 }
 
+.library-filter-panel .ant-upload-drag,
+.library-filter-panel [data-slot="button"][role="button"] {
+  padding: 16px 12px !important;
+  text-align: center;
+}
+
+.library-import-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--jm-text-muted);
+  text-align: center;
+}
+
 .library-filter-group {
   margin-bottom: 14px;
 }

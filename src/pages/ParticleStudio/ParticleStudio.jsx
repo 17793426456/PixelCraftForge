@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Button, Slider, Select, message, Upload, Collapse, Input, Space, ColorPicker, Switch, Modal,
+  Button, Slider, Select, message, Collapse, Input, Space, ColorPicker, Switch, Modal,
 } from '@/components/app/wrapped-ui'
+import FileDropzone from '@/components/app/FileDropzone'
 import {
   DownloadOutlined, ThunderboltOutlined, PlayCircleOutlined, PauseCircleOutlined,
   ReloadOutlined, SaveOutlined, FolderOpenOutlined, PlusOutlined, DeleteOutlined,
   EyeOutlined, EyeInvisibleOutlined, DragOutlined, ZoomInOutlined, ZoomOutOutlined,
-  KeyOutlined, CodeOutlined,
+  KeyOutlined, CodeOutlined, StepBackwardOutlined, StepForwardOutlined,
 } from '@/lib/icons/antd-lucide'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import vfxParticleParams from '../../constants/features/vfx-particle-params.js'
@@ -15,6 +16,8 @@ import vfxPreviewTiming from '../../constants/features/vfx-preview-timing.js'
 import { triggerDownload, zipBlobs } from '../../lib/assets/imageExport.js'
 import {
   BUILTIN_PRESETS,
+  createExampleParticleTexture,
+  getBuiltinPresetTextureKey,
   BLEND_MODES,
   CANVAS_H,
   CANVAS_W,
@@ -37,6 +40,9 @@ import {
 } from '../../lib/particle/aeEngineExport.js'
 import JSZip from 'jszip'
 import './ParticleStudio.css'
+
+const PRESET_PREVIEW_W = 960
+const PRESET_PREVIEW_H = 540
 
 function ParamSlider({ label, min, max, step = 1, value, onChange }) {
   return (
@@ -80,6 +86,8 @@ export default function ParticleStudio() {
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [presetName, setPresetName] = useState('')
   const [selectedKeyframeId, setSelectedKeyframeId] = useState(null)
+  const [presetPreviewUrl, setPresetPreviewUrl] = useState(null)
+  const [presetPreviewTitle, setPresetPreviewTitle] = useState('')
 
   const layersRef = useRef(layers)
   const globalRef = useRef(global)
@@ -234,24 +242,65 @@ export default function ParticleStudio() {
     if (activeLayerId === id) setActiveLayerId(layers.find((l) => l.id !== id)?.id ?? 'layer-1')
   }
 
+  const assignTextureToActiveLayer = useCallback(async (img, label) => {
+    textureMapRef.current = { ...textureMapRef.current, [activeLayerIdRef.current]: img }
+    setLayers((prev) => prev.map((l) => (
+      l.id === activeLayerIdRef.current
+        ? deepMergeLayer(l, { appearance: { shape: 'texture' }, texture: label })
+        : l
+    )))
+    resetSimulation()
+  }, [resetSimulation])
+
   const loadTexture = async (file) => {
-    const url = URL.createObjectURL(file)
-    const img = await new Promise((res, rej) => {
-      const el = new Image()
-      el.onload = () => res(el)
-      el.onerror = rej
-      el.src = url
-    })
-    textureMapRef.current = { ...textureMapRef.current, [activeLayerId]: img }
-    updateActiveLayer({ appearance: { shape: 'texture' }, texture: file.name })
-    message.success('粒子贴图已载入当前层')
+    if (!file) return
+    try {
+      const url = URL.createObjectURL(file)
+      const img = await new Promise((res, rej) => {
+        const el = new Image()
+        el.onload = () => res(el)
+        el.onerror = () => rej(new Error('load failed'))
+        el.src = url
+      })
+      URL.revokeObjectURL(url)
+      await assignTextureToActiveLayer(img, file.name || '贴图')
+      message.success('粒子贴图已载入当前层，粒子样式已切换为「纹理贴图」')
+    } catch {
+      message.error('贴图加载失败，请使用 PNG / WebP 图片')
+    }
   }
 
-  const applyBuiltinPreset = (key) => {
+  const importExampleTexture = async (key) => {
     const preset = BUILTIN_PRESETS[key]
     if (!preset) return
-    updateActiveLayer(preset.layer)
-    resetSimulation()
+    try {
+      const texKey = getBuiltinPresetTextureKey(preset)
+      const img = await createExampleParticleTexture(texKey)
+      await assignTextureToActiveLayer(img, `示例-${preset.name}.png`)
+      message.success(`已导入示例贴图：${preset.name}`)
+    } catch {
+      message.error('示例贴图生成失败，请重试或手动上传')
+    }
+  }
+
+  const applyBuiltinPreset = async (key) => {
+    const preset = BUILTIN_PRESETS[key]
+    if (!preset) return
+    setLayers((prev) => prev.map((l) => (
+      l.id === activeLayerIdRef.current ? deepMergeLayer(l, preset.layer) : l
+    )))
+    const needsTexture = preset.layer?.appearance?.shape === 'texture'
+      || getBuiltinPresetTextureKey(preset)
+    if (needsTexture) {
+      try {
+        const img = await createExampleParticleTexture(getBuiltinPresetTextureKey(preset))
+        await assignTextureToActiveLayer(img, `示例贴图-${preset.name}`)
+      } catch {
+        message.warning('示例贴图加载失败，可点击「导入示例」重试')
+      }
+    } else {
+      resetSimulation()
+    }
     message.success(`已应用预设：${preset.name}`)
   }
 
@@ -356,6 +405,52 @@ export default function ParticleStudio() {
     setElapsed(clamped)
   }
 
+  const stepFrame = (dir) => {
+    setPlaying(false)
+    playingRef.current = false
+    const dt = 1 / Math.max(global.fps, 1)
+    seekToTime(elapsedRef.current + dir * dt)
+  }
+
+  const goToStart = () => {
+    setPlaying(false)
+    playingRef.current = false
+    resetSimulation()
+  }
+
+  const renderPresetPreview = async (presetKey) => {
+    const preset = BUILTIN_PRESETS[presetKey]
+    if (!preset) return
+    const layer = deepMergeLayer(createDefaultLayer('preview', preset.name), preset.layer)
+    const texMap = {}
+    if (layer.appearance?.shape === 'texture' || getBuiltinPresetTextureKey(preset)) {
+      try {
+        texMap[layer.id] = await createExampleParticleTexture(getBuiltinPresetTextureKey(preset))
+      } catch { /* ignore */ }
+    }
+    const off = document.createElement('canvas')
+    off.width = PRESET_PREVIEW_W
+    off.height = PRESET_PREVIEW_H
+    const particles = { [layer.id]: [] }
+    const spawnAcc = { [layer.id]: 0 }
+    for (let i = 0; i < 90; i += 1) {
+      const step = simulateStep([layer], particles, spawnAcc, PRESET_PREVIEW_W, PRESET_PREVIEW_H)
+      particles[layer.id] = step.particlesByLayer[layer.id] ?? []
+      spawnAcc[layer.id] = step.spawnAcc[layer.id] ?? 0
+    }
+    renderFrame(off.getContext('2d'), [layer], particles, texMap, {
+      w: PRESET_PREVIEW_W,
+      h: PRESET_PREVIEW_H,
+      showGizmo: false,
+      viewScale: 1,
+      viewPanX: 0,
+      viewPanY: 0,
+      trail: true,
+    })
+    setPresetPreviewTitle(preset.name)
+    setPresetPreviewUrl(off.toDataURL('image/png'))
+  }
+
   const handleAddKeyframe = () => {
     setLayers((prev) => prev.map((l) => (
       l.id === activeLayerId
@@ -437,11 +532,22 @@ export default function ParticleStudio() {
             <div className="ae-param-label">粒子样式</div>
             <Select
               value={activeLayer.appearance.shape}
-              onChange={(v) => updateActiveLayer({ appearance: { shape: v } })}
+              onChange={(v) => {
+                updateActiveLayer({ appearance: { shape: v } })
+                if (v === 'texture' && !textureMapRef.current[activeLayerId]) {
+                  message.info('请在下方「素材与方案」上传贴图，或点击示例预设的「导入示例」')
+                }
+              }}
               options={PARTICLE_SHAPES.map((s) => ({ value: s, label: s === 'circle' ? '圆形' : s === 'star' ? '星形' : '纹理贴图' }))}
               style={{ width: '100%' }}
             />
           </div>
+          {activeLayer.appearance.shape === 'texture' && (
+            <p className="ae-texture-hint">
+              当前贴图：{activeLayer.texture || '未导入'}
+              {!activeLayer.texture && ' — 请在「素材与方案」导入贴图或示例'}
+            </p>
+          )}
         </>
       ),
     },
@@ -467,7 +573,10 @@ export default function ParticleStudio() {
             <Select
               value={activeLayer.render.blendMode}
               onChange={(v) => updateActiveLayer({ render: { blendMode: v } })}
-              options={BLEND_MODES.map((m) => ({ value: m, label: m === 'add' ? '光亮叠加 (Add)' : '常规叠加' }))}
+              options={BLEND_MODES.map((m) => ({
+                value: m,
+                label: m === 'add' ? '光亮叠加 (Add)' : m === 'screen' ? '滤色 (Screen)' : '常规叠加',
+              }))}
               style={{ width: '100%' }}
             />
           </div>
@@ -535,13 +644,33 @@ export default function ParticleStudio() {
       children: (
         <>
           <div className="ae-param-row">
-            <Upload showUploadList={false} beforeUpload={(f) => { void loadTexture(f); return false }} accept="image/*">
-              <Button block>导入粒子贴图</Button>
-            </Upload>
+            <FileDropzone
+              className="ae-texture-upload"
+              accept="image/*"
+              title="点击或拖拽导入粒子贴图"
+              hint="PNG / WebP · 应用于当前选中粒子层"
+              onFiles={(files) => { if (files[0]) void loadTexture(files[0]) }}
+            />
           </div>
+          <p className="ae-preset-section-label">内置示例贴图（魔法火花 / 细雨 / 爆炸）</p>
           <div className="ae-presets-row">
             {Object.entries(BUILTIN_PRESETS).map(([k, p]) => (
-              <Button key={k} size="small" onClick={() => applyBuiltinPreset(k)}>{p.name}</Button>
+              <div key={k} className="ae-preset-chip">
+                <button
+                  type="button"
+                  className="ae-preset-preview-btn"
+                  title="放大预览"
+                  onClick={() => { void renderPresetPreview(k) }}
+                >
+                  预览
+                </button>
+                <Button size="small" type="default" onClick={() => { void importExampleTexture(k) }}>
+                  导入示例
+                </Button>
+                <Button size="small" type="primary" className="jm-generate-btn" onClick={() => { void applyBuiltinPreset(k) }}>
+                  {p.name}
+                </Button>
+              </div>
             ))}
           </div>
           {savedPresets.length > 0 && (
@@ -570,15 +699,15 @@ export default function ParticleStudio() {
 
       <div className="ae-toolbar">
         <span className="ae-toolbar-title"><ThunderboltOutlined /> AE 粒子特效制作器</span>
-        <Button icon={playing ? <PauseCircleOutlined /> : <PlayCircleOutlined />} onClick={() => setPlaying((p) => !p)}>
+        <Button size="small" icon={playing ? <PauseCircleOutlined /> : <PlayCircleOutlined />} onClick={() => setPlaying((p) => !p)}>
           {playing ? '暂停' : '播放'}
         </Button>
-        <Button icon={<ReloadOutlined />} onClick={() => { resetSimulation(); setPlaying(true) }}>重置</Button>
-        <Button icon={<SaveOutlined />} onClick={() => setSaveModalOpen(true)}>保存方案</Button>
-        <Button icon={<DownloadOutlined />} onClick={exportConfig}>导出配置</Button>
-        <Button icon={<DownloadOutlined />} onClick={exportPng}>导出 PNG</Button>
-        <Button type="primary" icon={<DownloadOutlined />} onClick={() => { void exportSequence() }}>导出序列帧</Button>
-        <Button icon={<CodeOutlined />} onClick={() => { void exportEnginePack() }}>Unity/Phaser</Button>
+        <Button size="small" icon={<ReloadOutlined />} onClick={() => { resetSimulation(); setPlaying(true) }}>重置</Button>
+        <Button size="small" icon={<SaveOutlined />} onClick={() => setSaveModalOpen(true)}>保存方案</Button>
+        <Button size="small" icon={<DownloadOutlined />} onClick={exportConfig}>导出配置</Button>
+        <Button size="small" icon={<DownloadOutlined />} onClick={exportPng}>导出 PNG</Button>
+        <Button size="small" type="primary" icon={<DownloadOutlined />} onClick={() => { void exportSequence() }}>导出序列帧</Button>
+        <Button size="small" icon={<CodeOutlined />} onClick={() => { void exportEnginePack() }}>Unity/Phaser</Button>
         <span className="ae-toolbar-spacer" />
         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{elapsed.toFixed(1)}s / {global.duration}s · {global.fps} FPS</span>
       </div>
@@ -620,7 +749,20 @@ export default function ParticleStudio() {
           <div className="ae-timeline">
             <div className="ae-timeline-header">
               <span>时间轴</span>
-              <span>{elapsed.toFixed(2)}s / {global.duration}s</span>
+              <span>{elapsed.toFixed(2)}s / {global.duration}s · {playing ? '播放中' : '已暂停'}</span>
+            </div>
+            <div className="ae-timeline-transport">
+              <Button
+                size="small"
+                type={playing ? 'primary' : 'default'}
+                icon={playing ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+                onClick={() => setPlaying((p) => !p)}
+              >
+                {playing ? '暂停' : '播放'}
+              </Button>
+              <Button size="small" onClick={goToStart}>回到起点</Button>
+              <Button size="small" icon={<StepBackwardOutlined />} onClick={() => stepFrame(-1)} title="上一帧" />
+              <Button size="small" icon={<StepForwardOutlined />} onClick={() => stepFrame(1)} title="下一帧" />
             </div>
             <Slider
               min={0}
@@ -649,12 +791,26 @@ export default function ParticleStudio() {
         </div>
 
         <aside className="ae-params-panel">
-          <Collapse defaultActiveKey={['emitter', 'appearance', 'physics', 'render', 'animation']} items={collapseItems} />
+          <Collapse defaultActiveKey={['emitter', 'appearance', 'import', 'physics', 'render', 'animation']} items={collapseItems} />
         </aside>
       </div>
 
       <Modal title="保存特效方案" open={saveModalOpen} onOk={handleSavePreset} onCancel={() => setSaveModalOpen(false)}>
         <Input placeholder="方案名称，如：火球术尾迹" value={presetName} onChange={(e) => setPresetName(e.target.value)} />
+      </Modal>
+
+      <Modal
+        title={`预设预览 · ${presetPreviewTitle}`}
+        open={!!presetPreviewUrl}
+        footer={(
+          <Button type="primary" onClick={() => setPresetPreviewUrl(null)}>关闭</Button>
+        )}
+        onCancel={() => setPresetPreviewUrl(null)}
+        width={Math.min(PRESET_PREVIEW_W + 48, window.innerWidth - 40)}
+      >
+        {presetPreviewUrl && (
+          <img src={presetPreviewUrl} alt={presetPreviewTitle} className="ae-preset-preview-img" />
+        )}
       </Modal>
     </div>
   )

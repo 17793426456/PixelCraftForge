@@ -148,7 +148,8 @@ body {
   color: var(--jm-text-secondary);
   font-size: 14px;
   margin-bottom: var(--layout-block-gap);
-  line-height: 1.6;
+  line-height: 1.65;
+  padding-inline: 6px;
 }
 
 .page-header {
@@ -160,9 +161,10 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 28px;
+  gap: 10px;
+  min-height: 48px;
+  height: auto;
+  padding: 12px 32px;
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--text-body-size);
@@ -203,9 +205,10 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 28px;
+  gap: 10px;
+  min-height: 48px;
+  height: auto;
+  padding: 12px 32px;
   border-radius: var(--radius-md);
   font-size: var(--text-body-size);
   font-weight: 600;
@@ -259,29 +262,17 @@ body {
 
 /* ===== 按钮（Ant 默认覆盖） ===== */
 .ant-btn-primary:not(.ant-btn-dangerous):not(.jm-generate-btn) {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 55%, #6366f1 100%);
   border: none;
   box-shadow: var(--shadow-btn);
   font-weight: 600;
+  line-height: 1.25;
   transition: var(--transition-base);
 }
 
 .ant-btn-primary:not(.ant-btn-dangerous):not(.jm-generate-btn):hover {
-  background: var(--gradient-primary) !important;
+  background: linear-gradient(135deg, #b46ef8 0%, #8b5cf6 55%, #818cf8 100%) !important;
   box-shadow: 0 6px 24px rgba(168, 85, 247, 0.4) !important;
-}
-
-.ant-btn-default {
-  background: transparent !important;
-  border-color: var(--color-border) !important;
-  color: var(--color-text-secondary) !important;
-  transition: var(--transition-base) !important;
-}
-
-.ant-btn-default:hover {
-  color: var(--color-primary-light) !important;
-  border-color: var(--color-border-accent) !important;
-  background: var(--color-primary-bg) !important;
 }
 
 /* ===== 输入框 ===== */

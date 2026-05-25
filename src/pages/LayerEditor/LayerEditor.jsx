@@ -7,7 +7,9 @@ import {
   UndoOutlined, RedoOutlined, SaveOutlined, ClearOutlined, CopyOutlined,
   EditOutlined, DragOutlined, ZoomInOutlined, ZoomOutOutlined,
   LockOutlined, UnlockOutlined, EyeOutlined, EyeInvisibleOutlined,
+  ArrowUpOutlined, ArrowDownOutlined,
 } from '@/lib/icons/antd-lucide'
+import { Move, Paintbrush } from 'lucide-react'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import imageLayerEdit from '../../constants/features/image-layer-edit.js'
 import assistRefTrace from '../../constants/features/assist-ref-trace.js'
@@ -37,6 +39,8 @@ const BLEND_MODES = [
 const TOOLS = [
   { id: 'brush', label: '画笔', shortcut: 'B', Icon: EditOutlined },
   { id: 'eraser', label: '橡皮', shortcut: 'E', Icon: ClearOutlined },
+  { id: 'fill', label: '填充', shortcut: 'G', Icon: Paintbrush },
+  { id: 'move', label: '移动', shortcut: 'V', Icon: Move },
   { id: 'picker', label: '吸管', shortcut: 'I', Icon: BgColorsOutlined },
   { id: 'hand', label: '抓手', shortcut: 'H', Icon: DragOutlined },
 ]
@@ -66,7 +70,56 @@ function createEmptyLayer(name, id = Date.now()) {
     locked: false,
     opacity: 1,
     blendMode: 'source-over',
+    transform: { x: 0, y: 0 },
   }
+}
+
+function floodFillCanvas(canvas, startX, startY, fillStyle, tolerance = 32) {
+  const ctx = canvas.getContext('2d')
+  const { width, height } = canvas
+  const img = ctx.getImageData(0, 0, width, height)
+  const data = img.data
+  const idx = (y, x) => (y * width + x) * 4
+  const sx = Math.floor(startX)
+  const sy = Math.floor(startY)
+  if (sx < 0 || sy < 0 || sx >= width || sy >= height) return false
+  const base = idx(sy, sx)
+  const tr = data[base + 3]
+  if (tr === 0) {
+    ctx.fillStyle = fillStyle
+    ctx.fillRect(0, 0, width, height)
+    return true
+  }
+  const match = (i) => (
+    Math.abs(data[i] - data[base]) <= tolerance
+    && Math.abs(data[i + 1] - data[base + 1]) <= tolerance
+    && Math.abs(data[i + 2] - data[base + 2]) <= tolerance
+    && Math.abs(data[i + 3] - data[base + 3]) <= tolerance
+  )
+  if (!match(base)) return false
+  const stack = [[sx, sy]]
+  const visited = new Uint8Array(width * height)
+  const fill = document.createElement('canvas').getContext('2d')
+  fill.fillStyle = fillStyle
+  fill.fillRect(0, 0, 1, 1)
+  const fr = fill.getImageData(0, 0, 1, 1).data
+  while (stack.length) {
+    const [x, y] = stack.pop()
+    const p = idx(y, x)
+    if (visited[y * width + x]) continue
+    if (!match(p)) continue
+    visited[y * width + x] = 1
+    data[p] = fr[0]
+    data[p + 1] = fr[1]
+    data[p + 2] = fr[2]
+    data[p + 3] = 255
+    if (x > 0) stack.push([x - 1, y])
+    if (x < width - 1) stack.push([x + 1, y])
+    if (y > 0) stack.push([x, y - 1])
+    if (y < height - 1) stack.push([x, y + 1])
+  }
+  ctx.putImageData(img, 0, 0)
+  return true
 }
 
 function drawThumb(el, canvas) {
@@ -111,6 +164,7 @@ export default function LayerEditor() {
   const refImgRef = useRef(null)
   const strokeStartedRef = useRef(false)
   const panStartRef = useRef(null)
+  const moveStartRef = useRef(null)
 
   const activeLayer = layers.find((l) => l.id === activeId)
 
@@ -130,7 +184,9 @@ export default function LayerEditor() {
       if (!layer.visible) continue
       ctx.globalAlpha = layer.opacity ?? 1
       ctx.globalCompositeOperation = layer.blendMode || 'source-over'
-      ctx.drawImage(layer.canvas, 0, 0)
+      const tx = layer.transform?.x ?? 0
+      const ty = layer.transform?.y ?? 0
+      ctx.drawImage(layer.canvas, tx, ty)
     }
     ctx.globalAlpha = 1
     ctx.globalCompositeOperation = 'source-over'
@@ -253,6 +309,19 @@ export default function LayerEditor() {
     bumpRevision()
   }
 
+  const moveLayerOrder = (id, dir) => {
+    setLayers((prev) => {
+      const idx = prev.findIndex((l) => l.id === id)
+      if (idx < 0) return prev
+      const next = [...prev]
+      const swap = dir < 0 ? idx + 1 : idx - 1
+      if (swap < 0 || swap >= next.length) return prev
+      ;[next[idx], next[swap]] = [next[swap], next[idx]]
+      return next
+    })
+    bumpRevision()
+  }
+
   const moveLayer = (fromId, toId) => {
     if (fromId === toId) return
     setLayers((prev) => {
@@ -295,7 +364,7 @@ export default function LayerEditor() {
 
   const paint = (clientX, clientY) => {
     if (!drawing || !activeLayer || activeLayer.locked) return
-    if (tool === 'hand' || tool === 'picker') return
+    if (tool === 'hand' || tool === 'picker' || tool === 'move' || tool === 'fill') return
 
     if (!strokeStartedRef.current) {
       pushUndo(activeLayer.id, snapshotCanvas(activeLayer.canvas))
@@ -333,8 +402,27 @@ export default function LayerEditor() {
       panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }
       return
     }
+    if (tool === 'move' && activeLayer && !activeLayer.locked) {
+      moveStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        tx: activeLayer.transform?.x ?? 0,
+        ty: activeLayer.transform?.y ?? 0,
+      }
+      return
+    }
     if (tool === 'picker') {
       pickColor(e.clientX, e.clientY)
+      return
+    }
+    if (tool === 'fill' && activeLayer && !activeLayer.locked) {
+      const pt = clientToCanvas(e.clientX, e.clientY)
+      if (!pt) return
+      pushUndo(activeLayer.id, snapshotCanvas(activeLayer.canvas))
+      const ok = floodFillCanvas(activeLayer.canvas, pt.x, pt.y, resolveColor(color))
+      bumpRevision()
+      redrawPreview()
+      message[ok ? 'success' : 'warning'](ok ? '填充完成' : '未填充（颜色相近或越界）')
       return
     }
     if (!activeId) addLayer()
@@ -351,6 +439,22 @@ export default function LayerEditor() {
       })
       return
     }
+    if (moveStartRef.current && activeLayer) {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const rect = canvas.getBoundingClientRect()
+      const scaleX = CANVAS_SIZE.w / rect.width / zoom
+      const scaleY = CANVAS_SIZE.h / rect.height / zoom
+      const dx = (e.clientX - moveStartRef.current.x) * scaleX
+      const dy = (e.clientY - moveStartRef.current.y) * scaleY
+      updateLayer(activeLayer.id, {
+        transform: {
+          x: Math.round(moveStartRef.current.tx + dx),
+          y: Math.round(moveStartRef.current.ty + dy),
+        },
+      })
+      return
+    }
     if (drawing) paint(e.clientX, e.clientY)
   }
 
@@ -358,6 +462,7 @@ export default function LayerEditor() {
     setDrawing(false)
     setPanning(false)
     panStartRef.current = null
+    moveStartRef.current = null
   }
 
   const handleWheel = (e) => {
@@ -378,7 +483,14 @@ export default function LayerEditor() {
       const canvas = document.createElement('canvas')
       canvas.width = CANVAS_SIZE.w
       canvas.height = CANVAS_SIZE.h
-      canvas.getContext('2d').drawImage(img, 0, 0, CANVAS_SIZE.w, CANVAS_SIZE.h)
+      const ctx = canvas.getContext('2d')
+      ctx.clearRect(0, 0, CANVAS_SIZE.w, CANVAS_SIZE.h)
+      const scale = Math.min(CANVAS_SIZE.w / img.width, CANVAS_SIZE.h / img.height, 1)
+      const dw = img.width * scale
+      const dh = img.height * scale
+      const dx = (CANVAS_SIZE.w - dw) / 2
+      const dy = (CANVAS_SIZE.h - dh) / 2
+      ctx.drawImage(img, dx, dy, dw, dh)
       const id = Date.now()
       setLayers((prev) => [...prev, {
         id,
@@ -388,6 +500,7 @@ export default function LayerEditor() {
         locked: false,
         opacity: 1,
         blendMode: 'source-over',
+        transform: { x: 0, y: 0 },
       }])
       setActiveId(id)
       bumpRevision()
@@ -415,6 +528,30 @@ export default function LayerEditor() {
     bumpRevision()
     redrawPreview()
     message.success('当前图层已清空')
+  }
+
+  const exportActiveLayerPng = async () => {
+    if (!activeLayer) return
+    const blob = await new Promise((r) => activeLayer.canvas.toBlob(r, 'image/png'))
+    triggerDownload(blob, `${activeLayer.name.replace(/[^\w.-]/g, '_')}.png`)
+    message.success('当前图层已导出')
+  }
+
+  const pasteFromClipboard = async () => {
+    try {
+      const items = await navigator.clipboard.read()
+      for (const item of items) {
+        const type = item.types.find((t) => t.startsWith('image/'))
+        if (!type) continue
+        const blob = await item.getType(type)
+        const file = new File([blob], `clipboard-${Date.now()}.png`, { type: blob.type })
+        await importImage(file)
+        return
+      }
+      message.warning('剪贴板中没有图片')
+    } catch {
+      message.error('无法读取剪贴板，请检查浏览器权限')
+    }
   }
 
   const exportMerged = async () => {
@@ -460,6 +597,10 @@ export default function LayerEditor() {
         e.preventDefault()
         redo()
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault()
+        void pasteFromClipboard()
+      }
       if (!e.ctrlKey && !e.metaKey) {
         const t = TOOLS.find((x) => x.shortcut.toLowerCase() === e.key.toLowerCase())
         if (t) setTool(t.id)
@@ -474,7 +615,7 @@ export default function LayerEditor() {
       {
         key: 'import',
         label: (
-          <Upload showUploadList={false} beforeUpload={(f) => { void importImage(f); return false }} accept="image/*">
+          <Upload variant="inline" showUploadList={false} beforeUpload={(f) => { void importImage(f); return false }} accept="image/*">
             导入图片为图层
           </Upload>
         ),
@@ -482,12 +623,14 @@ export default function LayerEditor() {
       {
         key: 'ref',
         label: (
-          <Upload showUploadList={false} beforeUpload={(f) => { importRefImage(f); return false }} accept="image/*">
+          <Upload variant="inline" showUploadList={false} beforeUpload={(f) => { importRefImage(f); return false }} accept="image/*">
             导入参考图
           </Upload>
         ),
       },
+      { key: 'paste', label: '从剪贴板粘贴', onClick: () => { void pasteFromClipboard() } },
       { type: 'divider' },
+      { key: 'exportLayer', label: '导出当前图层', onClick: () => { void exportActiveLayerPng() } },
       { key: 'export', label: '导出合并 PNG', onClick: () => { void exportMerged() } },
       { key: 'zip', label: '导出分层 ZIP', onClick: () => { void exportLayersZip() } },
       { key: 'lib', label: '存入素材仓库', onClick: () => { void saveToLibrary() } },
@@ -510,10 +653,10 @@ export default function LayerEditor() {
           <p>Photoshop 风格多图层编辑 — 画笔、混合模式、图层面板、缩放平移与参考图临摹</p>
         </header>
 
-        <div className="lyed-callouts">
-          <FeatureCallout feature={imageLayerEdit} />
-          <FeatureCallout feature={assistRefTrace} />
-          <FeatureCallout feature={assistGridRuler} />
+        <div className="lyed-callouts" role="list" aria-label="相关能力">
+          <FeatureCallout feature={imageLayerEdit} variant="compact" />
+          <FeatureCallout feature={assistRefTrace} variant="compact" />
+          <FeatureCallout feature={assistGridRuler} variant="compact" />
         </div>
 
         <div className="lyed-workspace">
@@ -584,6 +727,8 @@ export default function LayerEditor() {
               )}
               {tool === 'picker' && <span className="lyed-options-label">点击画布吸取颜色</span>}
               {tool === 'hand' && <span className="lyed-options-label">拖拽平移画布 · 滚轮缩放</span>}
+              {tool === 'move' && <span className="lyed-options-label">拖拽移动当前图层位置</span>}
+              {tool === 'fill' && <span className="lyed-options-label">点击区域填充（油漆桶）</span>}
               {activeLayer?.locked && (
                 <span className="lyed-options-label" style={{ color: '#f59e0b' }}>当前图层已锁定</span>
               )}
@@ -728,6 +873,12 @@ export default function LayerEditor() {
             </ul>
 
             <div className="lyed-panel-btns">
+              <Tooltip title="上移一层">
+                <Button size="small" icon={<ArrowUpOutlined />} onClick={() => activeId && moveLayerOrder(activeId, 1)} disabled={!activeId} />
+              </Tooltip>
+              <Tooltip title="下移一层">
+                <Button size="small" icon={<ArrowDownOutlined />} onClick={() => activeId && moveLayerOrder(activeId, -1)} disabled={!activeId} />
+              </Tooltip>
               <Tooltip title="新建图层">
                 <Button size="small" icon={<PlusOutlined />} onClick={() => addLayer()} />
               </Tooltip>
@@ -737,8 +888,11 @@ export default function LayerEditor() {
               <Tooltip title="删除图层">
                 <Button size="small" danger icon={<DeleteOutlined />} onClick={() => activeId && deleteLayer(activeId)} disabled={!activeId || layers.length <= 1} />
               </Tooltip>
-              <Tooltip title="导出">
-                <Button size="small" icon={<DownloadOutlined />} onClick={() => { void exportMerged() }} />
+              <Tooltip title="导出当前图层">
+                <Button size="small" icon={<DownloadOutlined />} onClick={() => { void exportActiveLayerPng() }} disabled={!activeId} />
+              </Tooltip>
+              <Tooltip title="导出分层 ZIP">
+                <Button size="small" onClick={() => { void exportLayersZip() }}>ZIP</Button>
               </Tooltip>
               <Tooltip title="入库">
                 <Button size="small" icon={<SaveOutlined />} onClick={() => { void saveToLibrary() }} />

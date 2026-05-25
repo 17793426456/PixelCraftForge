@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Zap, Sparkles, Image, Pencil, RotateCcw, Info, ChevronRight, ChevronDown,
   Download, FolderPlus,
@@ -11,7 +11,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Progress } from '@/components/ui/progress'
 import { message } from '@/lib/ui/notify'
+import { triggerDownload } from '../../lib/assets/imageExport.js'
 import FileDropzone from '@/components/app/FileDropzone'
 import Stack from '@/components/app/Stack'
 import IconFont from '../../components/IconFont/IconFont'
@@ -19,12 +21,12 @@ import uiDrawComponents from '../../constants/features/ui-draw-components.js'
 import uiStateSprites from '../../constants/features/ui-state-sprites.js'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import { ratioToDimensions } from '../../lib/assets/placeholderAsset.js'
-import { saveBlobToLibrary } from '../../lib/assets/saveToLibrary.js'
+import { saveGeneratedItemToLibrary } from '../../lib/assets/saveToLibrary.js'
 import { zipBlobs } from '../../lib/assets/imageExport.js'
 import { ApiError } from '../../lib/api/client.js'
 import { resolveAssetCategory } from '../../lib/api/assetCategory.js'
 import { generateImageToImage, generateTextToImage } from '../../lib/api/elementApi.js'
-import { resolveMediaUrl, urlToBlob } from '../../lib/api/mediaUrl.js'
+import { ensureResultBlob, resolveMediaUrl, urlToBlob } from '../../lib/api/mediaUrl.js'
 import './ElementGenerate.css'
 
 const UI_STATE_PRESETS = ['normal', 'hover', 'disabled']
@@ -69,9 +71,9 @@ export default function ElementGenerate() {
   const [resolution, setResolution] = useState(DEFAULTS.resolution)
   const [ratio, setRatio] = useState(DEFAULTS.ratio)
   const [count, setCount] = useState(DEFAULTS.count)
-  const [credits] = useState(40)
   const [results, setResults] = useState([])
   const [isGenerating, setIsGenerating] = useState(false)
+  const [genProgress, setGenProgress] = useState(0)
   const [refImageUrl, setRefImageUrl] = useState(null)
   const [refImageFile, setRefImageFile] = useState(null)
   const [modifyImageUrl, setModifyImageUrl] = useState(null)
@@ -110,8 +112,8 @@ export default function ElementGenerate() {
       message.warning('请输入描述后再生成')
       return
     }
-    if (mode === '图生图' && !refImageFile) {
-      message.warning('请上传参考图')
+    if (mode === '图生图' && (!refImageFile || !prompt.trim())) {
+      message.warning('请上传参考图并填写描述')
       return
     }
     if (mode === '二次修改' && (!modifyImageFile || !modifyPrompt.trim())) {
@@ -119,6 +121,7 @@ export default function ElementGenerate() {
       return
     }
     setIsGenerating(true)
+    setGenProgress(8)
     try {
       const base = results.length
       const style = currentModel.name
@@ -151,6 +154,7 @@ export default function ElementGenerate() {
         }
         const previewUrl = resolveMediaUrl(apiRes.url)
         const blob = await urlToBlob(apiRes.url)
+        setGenProgress(Math.min(95, Math.round(((i + 1) / count) * 90) + 5))
         next.push({
           id: Date.now() + i,
           name,
@@ -167,40 +171,98 @@ export default function ElementGenerate() {
         })
       }
       setResults((prev) => [...prev, ...next])
-      message.success(`已生成 ${count} 张图片`)
+      message.success(`已生成 ${count} 张图片，可在右侧一键入库`)
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : '生成失败，请确认后端已启动'
       message.error(msg)
     } finally {
       setIsGenerating(false)
+      setGenProgress(0)
     }
   }
 
   const handleSaveResults = async () => {
-    if (!results.length) return
+    const targets = filteredResults.length ? filteredResults : results
+    if (!targets.length) {
+      message.warning('暂无可入库的素材')
+      return
+    }
     try {
-      for (const r of results) {
-        if (!r.blob) continue
-        await saveBlobToLibrary(r.blob, `${r.name}.png`, {
+      let saved = 0
+      for (const r of targets) {
+        await saveGeneratedItemToLibrary(r, {
+          name: r.name,
           funcType: '角色类',
           folder: '图片生成',
           style: r.model,
+          defaultExt: 'png',
         })
+        saved += 1
       }
-      message.success(`已入库 ${results.length} 个素材`)
+      message.success(`已入库 ${saved} 个素材，可在素材仓库查看`)
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '入库失败')
+    }
+  }
+
+  const handleSaveOne = async (r) => {
+    try {
+      await saveGeneratedItemToLibrary(r, {
+        name: r.name,
+        funcType: '角色类',
+        folder: '图片生成',
+        style: r.model,
+        defaultExt: 'png',
+      })
+      message.success(`「${r.name}」已入库`)
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '入库失败')
+    }
+  }
+
+  const handleDownloadOne = async (r) => {
+    try {
+      const blob = await ensureResultBlob(r)
+      triggerDownload(blob, `${r.name}.png`)
     } catch {
-      message.error('入库失败')
+      message.error('下载失败')
     }
   }
 
   const handleDownloadAll = async () => {
-    const entries = results.filter((r) => r.blob).map((r) => ({ name: `${r.name}.png`, blob: r.blob }))
-    if (!entries.length) return
-    await zipBlobs(entries, 'generated-images.zip')
+    const targets = filteredResults.length ? filteredResults : results
+    if (!targets.length) return
+    try {
+      const entries = await Promise.all(
+        targets.map(async (r) => ({
+          name: `${r.name}.png`,
+          blob: await ensureResultBlob(r),
+        })),
+      )
+      await zipBlobs(entries, 'generated-images.zip')
+      message.success('已开始下载 ZIP')
+    } catch {
+      message.error('打包下载失败')
+    }
   }
 
   const timeOptions = ['全部时间', '今天', '本周', '本月']
   const typeOptions = ['全部类型', '文生图', '图生图', '二次修改']
+
+  const [filteredResults, setFilteredResults] = useState(results)
+  useEffect(() => {
+    const now = Date.now()
+    const day = 86400000
+    setFilteredResults(results.filter((r) => {
+      if (filterType !== '全部类型' && r.mode !== filterType) return false
+      if (filterTime === '全部时间') return true
+      const age = now - (r.createdAt ?? 0)
+      if (filterTime === '今天') return age < day
+      if (filterTime === '本周') return age < day * 7
+      if (filterTime === '本月') return age < day * 30
+      return true
+    }))
+  }, [results, filterType, filterTime])
 
   return (
     <div className="jm-workspace">
@@ -265,21 +327,30 @@ export default function ElementGenerate() {
             />
           )}
           {mode === '图生图' && (
-            <FileDropzone
-              accept="image/*"
-              maxCount={1}
-              className="jm-upload"
-              title={refImageUrl ? '已选参考图，点击更换' : '点击或拖拽上传参考图片'}
-              onFiles={(files) => {
-                const f = files[0]
-                if (!f) return
-                setRefImageUrl(URL.createObjectURL(f))
-                setRefImageFile(f)
-              }}
-            >
-              <p className="jm-upload-icon"><IconFont type="icon-folder" /></p>
-              {refImageUrl && <img src={refImageUrl} alt="参考" style={{ maxWidth: '100%', maxHeight: 120, marginTop: 8, borderRadius: 8 }} />}
-            </FileDropzone>
+            <>
+              <FileDropzone
+                accept="image/*"
+                maxCount={1}
+                className="jm-upload"
+                title={refImageUrl ? '已选参考图，点击更换' : '点击或拖拽上传参考图片'}
+                onFiles={(files) => {
+                  const f = files[0]
+                  if (!f) return
+                  setRefImageUrl(URL.createObjectURL(f))
+                  setRefImageFile(f)
+                }}
+              >
+                <p className="jm-upload-icon"><IconFont type="icon-folder" /></p>
+                {refImageUrl && <img src={refImageUrl} alt="参考" style={{ maxWidth: '100%', maxHeight: 120, marginTop: 8, borderRadius: 8 }} />}
+              </FileDropzone>
+              <Textarea
+                rows={4}
+                placeholder="结合参考图，描述你想生成的画面内容、风格变化或细节要求..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="jm-prompt border-0 shadow-none"
+              />
+            </>
           )}
           {mode === '二次修改' && (
             <>
@@ -387,12 +458,15 @@ export default function ElementGenerate() {
         </div>
 
         <div className="jm-panel-footer">
+          {isGenerating && (
+            <div className="mb-3 space-y-1">
+              <Progress value={genProgress} className="h-2" />
+              <p className="text-xs text-muted-foreground">正在生成 {genProgress}%…</p>
+            </div>
+          )}
           <Button size="lg" className="jm-generate-btn w-full" onClick={() => { void handleGenerate() }} disabled={isGenerating}>
             <span className="jm-generate-text">
-              <Zap className="size-4" /> {isGenerating ? '生成中...' : '免费创作'}
-            </span>
-            <span className="jm-generate-credit">
-              <IconFont type="icon-flash" /> {credits}
+              <Zap className="size-4" /> {isGenerating ? '生成中...' : '开始创作'}
             </span>
           </Button>
         </div>
@@ -420,7 +494,7 @@ export default function ElementGenerate() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          {results.length > 0 && (
+          {filteredResults.length > 0 && (
             <>
               <Button size="sm" variant="outline" onClick={() => { void handleDownloadAll() }}>
                 <Download className="size-4" /> 批量下载
@@ -431,7 +505,7 @@ export default function ElementGenerate() {
             </>
           )}
           <button type="button" className="jm-filter-btn">
-            <IconFont type="icon-task" /> 共 {results.length} 项
+            <IconFont type="icon-task" /> 共 {filteredResults.length} / {results.length} 项
           </button>
         </div>
 
@@ -447,7 +521,7 @@ export default function ElementGenerate() {
             </div>
           ) : (
             <div className="jm-results-grid">
-              {results.map((r) => (
+              {filteredResults.map((r) => (
                 <div key={r.id} className="jm-result-card">
                   <div className="jm-result-cover">
                     {r.previewUrl ? <img src={r.previewUrl} alt={r.name} /> : <IconFont type="icon-game" />}
@@ -456,6 +530,14 @@ export default function ElementGenerate() {
                     <span className="jm-result-name">{r.name}</span>
                     <span className="jm-result-info">{r.mode} · {r.ratio} · {r.resolution}</span>
                     {r.layered && <Badge variant="secondary" className="text-emerald-600">分层</Badge>}
+                    <div className="jm-result-actions mt-2 flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => { void handleDownloadOne(r) }}>
+                        <Download className="size-3.5" /> 下载
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { void handleSaveOne(r) }}>
+                        <FolderPlus className="size-3.5" /> 入库
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

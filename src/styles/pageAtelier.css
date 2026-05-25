@@ -58,6 +58,7 @@
 .atelier-subtitle {
   margin: 0;
   max-width: 680px;
+  padding: 4px 6px 0;
   font-size: 14px;
   line-height: 1.65;
   color: var(--jm-text-secondary);

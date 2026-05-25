@@ -1,0 +1,225 @@
+/**
+ * 全局按钮排版：防止文字穿模 / 溢出，工具栏与侧栏统一柔和渐变
+ */
+
+/* —— shadcn Button 基座 —— */
+[data-slot="button"] {
+  box-sizing: border-box;
+  line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  vertical-align: middle;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+[data-slot="button"][data-size="default"] {
+  font-size: 13px;
+}
+
+[data-slot="button"][data-size="lg"] {
+  font-size: 14px;
+}
+
+[data-slot="button"][data-size="sm"],
+[data-slot="button"][data-size="xs"] {
+  font-size: 12px;
+}
+
+[data-slot="button"] .app-btn-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* 描边 / 次要：柔和线性底 */
+[data-slot="button"][data-variant="outline"],
+[data-slot="button"][data-variant="secondary"] {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-slot="button"][data-variant="outline"]:hover:not(:disabled),
+[data-slot="button"][data-variant="secondary"]:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.14) 0%,
+    rgba(139, 92, 246, 0.06) 100%
+  );
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+[data-slot="button"][data-variant="ghost"]:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+}
+
+[data-slot="button"][data-variant="default"]:not(:disabled) {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 55%, #6366f1 100%);
+  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.28);
+}
+
+[data-slot="button"][data-variant="default"]:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b46ef8 0%, #8b5cf6 55%, #818cf8 100%);
+  box-shadow: 0 4px 18px rgba(168, 85, 247, 0.38);
+}
+
+/* —— 兼容层 ant-btn（wrapped-ui / AppButton） —— */
+.ant-btn {
+  box-sizing: border-box !important;
+  line-height: 1.3 !important;
+  max-width: 100%;
+  overflow: hidden;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: var(--ui-btn-pad-y, 8px) var(--ui-btn-pad-x, 16px) !important;
+  font-size: 13px !important;
+  white-space: nowrap;
+  text-align: center !important;
+}
+
+.ant-btn > span:not(.anticon):not([class*="icon"]) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline: 2px;
+  text-align: center !important;
+}
+
+.ant-btn-sm {
+  min-height: 32px !important;
+  height: auto !important;
+  padding: var(--ui-btn-pad-y-sm, 6px) var(--ui-btn-pad-x-sm, 14px) !important;
+  font-size: 12px !important;
+}
+
+.ant-btn-lg {
+  min-height: 40px !important;
+  height: auto !important;
+  padding: 10px 22px !important;
+  font-size: 14px !important;
+}
+
+.ant-btn-default {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  ) !important;
+}
+
+.ant-btn-default:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.16) 0%,
+    rgba(139, 92, 246, 0.08) 100%
+  ) !important;
+}
+
+/* —— 工具栏密集按钮（粒子 / 图层 / 视频） —— */
+.ae-toolbar,
+.lyed-menubar,
+.lyed-panel-btns,
+.jm-canvas-toolbar,
+.library-toolbar,
+.pt-export-bar,
+.vf-results-header .ant-space {
+  flex-wrap: wrap;
+}
+
+/* 工具栏：略小字号 + 充足左右留白 */
+.ae-toolbar [data-slot="button"],
+.ae-toolbar .ant-btn,
+.lyed-menubar [data-slot="button"],
+.lyed-menubar .ant-btn,
+.jm-canvas-toolbar [data-slot="button"],
+.jm-canvas-toolbar .ant-btn,
+.pt-export-bar [data-slot="button"],
+.pt-export-bar .ant-btn {
+  flex: 0 1 auto;
+  min-height: 32px;
+  height: auto !important;
+  max-width: 100%;
+  padding: 7px 16px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  gap: 8px !important;
+  border-radius: 8px;
+}
+
+.ae-toolbar [data-slot="button"] svg,
+.ae-toolbar .ant-btn svg,
+.lyed-menubar [data-slot="button"] svg,
+.lyed-menubar .ant-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0;
+}
+
+.lyed-panel-btns [data-slot="button"],
+.lyed-panel-btns .ant-btn {
+  flex: 0 1 auto;
+  min-width: 2.25rem;
+  min-height: 30px;
+  height: auto !important;
+  max-width: 100%;
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+}
+
+/* 大按钮 / 全宽主操作 */
+[data-slot="button"][data-size="lg"],
+.jm-generate-btn[data-slot="button"],
+.jm-generate-btn.ant-btn {
+  padding: 10px 24px !important;
+}
+
+/* —— 首页 / 通用 CTA —— */
+.btn-primary,
+.btn-secondary {
+  line-height: 1.3;
+  gap: 10px;
+  padding: 0 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  text-align: center;
+}
+
+.btn-primary--block,
+.btn-secondary--block {
+  padding-inline: 24px;
+}
+
+.mobile-nav-toggle {
+  line-height: 1;
+  overflow: visible;
+}
+
+/* 主操作按钮：淡紫纯色，不用渐变（元素生成 / UI 工作室等） */
+.jm-generate-btn[data-slot="button"],
+.jm-generate-btn.ant-btn,
+button.jm-generate-btn {
+  background: #c9b8fd !important;
+  color: #2a2040 !important;
+  border: 1px solid rgba(168, 85, 247, 0.28) !important;
+  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.16) !important;
+}
+
+.jm-generate-btn[data-slot="button"]:hover:not(:disabled),
+.jm-generate-btn.ant-btn:hover:not(:disabled),
+button.jm-generate-btn:hover:not(:disabled) {
+  background: #d6caf9 !important;
+  color: #2a2040 !important;
+}

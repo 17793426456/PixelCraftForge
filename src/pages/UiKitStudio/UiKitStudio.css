@@ -1,0 +1,382 @@
+.uikit-page-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.uikit-callouts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 工具栏按钮：边距 + 居中，与关卡/像素画笔一致 */
+.uikit-page .uikit-control[data-slot="button"],
+.uikit-page .uikit-control.ant-btn {
+  min-height: 36px !important;
+  height: auto !important;
+  padding: 8px 18px !important;
+  font-size: 13px !important;
+  justify-content: center !important;
+  text-align: center !important;
+  gap: 8px !important;
+  border-radius: 10px !important;
+}
+
+.uikit-page .uikit-control .app-btn-label {
+  text-align: center;
+}
+
+/* 主按钮走 jm-generate-btn 淡紫纯色，覆盖全局渐变 */
+.uikit-page .jm-generate-btn[data-slot="button"],
+.uikit-page .jm-generate-btn.ant-btn {
+  min-height: 38px !important;
+  padding: 8px 20px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+}
+
+.uikit-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.uikit-mode-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.uikit-mode-group .uikit-control {
+  min-width: 6.5rem;
+}
+
+.uikit-check-row {
+  justify-content: center;
+}
+
+.uikit-upload-zone {
+  width: 100%;
+  min-height: 120px;
+  margin-bottom: 16px;
+  padding: 20px 16px !important;
+  border-radius: 12px;
+  border-color: rgba(168, 85, 247, 0.22) !important;
+  background: rgba(168, 85, 247, 0.05) !important;
+}
+
+.uikit-upload-zone:hover {
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  background: rgba(168, 85, 247, 0.1) !important;
+}
+
+.uikit-template-bar {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.uikit-template-input {
+  min-width: 120px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+}
+
+.uikit-template-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.uikit-template-input:focus {
+  outline: none;
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.15);
+}
+
+.uikit-field [data-slot="input"] {
+  text-align: center;
+}
+
+.uikit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.uikit-states-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.uikit-state-cell {
+  text-align: center;
+}
+
+.uikit-state-label {
+  display: block;
+  font-size: 13px;
+}
+
+.uikit-state-key {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.uikit-state-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(168, 85, 247, 0.85);
+}
+
+.uikit-state-preview-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  margin-top: 8px;
+  padding: 12px;
+  background: #1a1a22;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.uikit-state-preview {
+  max-width: 100%;
+  width: auto;
+  max-height: 96px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.uikit-state-preview--disabled {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+
+.uikit-state-placeholder {
+  height: 120px;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+}
+
+/* ===== 序列图 / 动画预览 ===== */
+.uikit-seq-panel {
+  margin-top: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.uikit-seq-panel-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.uikit-seq-panel-desc {
+  margin: 0 0 14px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.uikit-seq {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.uikit-seq--compact {
+  margin-top: 8px;
+  gap: 8px;
+}
+
+.uikit-seq-player {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.uikit-seq--compact .uikit-seq-player {
+  gap: 8px;
+}
+
+.uikit-seq-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #1a1a22;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.uikit-seq--compact .uikit-seq-stage {
+  min-height: 96px;
+  padding: 10px;
+}
+
+.uikit-seq-frame-img {
+  max-width: 100%;
+  max-height: 96px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.uikit-seq-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.uikit-seq-fps {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.uikit-seq-fps [data-slot="input"] {
+  width: 3.5rem;
+  text-align: center;
+}
+
+.uikit-seq-meta {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(168, 85, 247, 0.9);
+}
+
+.uikit-seq-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.uikit-seq-progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #a855f7, #c4b5fd);
+  transition: width 0.12s linear;
+}
+
+.uikit-seq-strip-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.uikit-seq-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scroll-snap-type: x proximity;
+}
+
+.uikit-seq-thumb {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.uikit-seq-thumb:hover {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.uikit-seq-thumb.is-active {
+  border-color: rgba(168, 85, 247, 0.65);
+  background: rgba(168, 85, 247, 0.16);
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.25);
+}
+
+.uikit-seq-thumb img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #121218;
+}
+
+.uikit-seq-thumb span {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.uikit-seq-sheet-scroll {
+  overflow-x: auto;
+  padding: 8px;
+  border-radius: 8px;
+  background: #121218;
+  border: 1px dashed rgba(168, 85, 247, 0.25);
+}
+
+.uikit-seq-sheet-img {
+  display: block;
+  max-height: 72px;
+  width: auto;
+  margin: 0 auto;
+  image-rendering: pixelated;
+}
+
+.uikit-seq-sheet-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+@media (max-width: 720px) {
+  .uikit-states-grid {
+    grid-template-columns: 1fr;
+  }
+}

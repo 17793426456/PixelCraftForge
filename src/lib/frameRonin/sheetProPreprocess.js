@@ -275,7 +275,6 @@ function removeWatermarkReverseAlpha(imageData, alphaMap, mapWidth, mapHeight, x
       for (let c = 0; c < 3; c++) {
         const watermarked = data[i + c] ?? 0;
         const original = (watermarked - alpha * logoValue) / oneMinusAlpha;
-        if (original < 0) continue;
         data[i + c] = Math.round(Math.max(0, Math.min(255, original)));
       }
     }

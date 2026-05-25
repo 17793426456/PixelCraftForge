@@ -280,33 +280,37 @@ export default function LevelEditor() {
       <div className="le-toolbar">
         <span className="le-toolbar-title"><BorderOutlined /> {PRODUCT.name}</span>
         <Select
+          className="le-control"
           value={meta.view}
           onChange={changeView}
           options={Object.values(VIEW_MODES).map((v) => ({ value: v.id, label: v.label }))}
-          style={{ width: 120 }}
+          style={{ width: 128 }}
         />
         <Select
+          className="le-control"
           value={meta.gameType}
           onChange={(v) => setProject((p) => ({ ...p, meta: { ...p.meta, gameType: v } }))}
           options={Object.values(GAME_TYPES).map((g) => ({ value: g.id, label: g.label }))}
-          style={{ width: 120 }}
+          style={{ width: 128 }}
         />
         <Select
+          className="le-control"
           value={meta.tileSize}
           onChange={(v) => setProject((p) => ({ ...p, meta: { ...p.meta, tileSize: v } }))}
           options={TILE_SIZES.map((s) => ({ value: s, label: `${s}×${s}` }))}
-          style={{ width: 90 }}
+          style={{ width: 96 }}
         />
         <Input
+          className="le-control"
           value={meta.name}
           onChange={(e) => setProject((p) => ({ ...p, meta: { ...p.meta, name: e.target.value } }))}
           placeholder="关卡名称"
-          style={{ width: 140 }}
+          style={{ width: 148 }}
         />
-        <Button icon={<SaveOutlined />} onClick={saveProject}>保存工程</Button>
-        <Button icon={<DownloadOutlined />} onClick={exportJson}>导出 JSON</Button>
-        <Button icon={<DownloadOutlined />} onClick={() => { void exportEnginePack() }}>引擎包</Button>
-        <Button icon={<DownloadOutlined />} onClick={exportPng}>预览 PNG</Button>
+        <Button className="le-control" size="small" icon={<SaveOutlined />} onClick={saveProject}>保存工程</Button>
+        <Button className="le-control" size="small" icon={<DownloadOutlined />} onClick={exportJson}>导出 JSON</Button>
+        <Button className="le-control" size="small" icon={<DownloadOutlined />} onClick={() => { void exportEnginePack() }}>引擎包</Button>
+        <Button className="le-control" size="small" icon={<DownloadOutlined />} onClick={exportPng}>预览 PNG</Button>
       </div>
 
       <div className="le-body">
@@ -319,22 +323,28 @@ export default function LevelEditor() {
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
             />
-            <Button block size="small" icon={<ThunderboltOutlined />} style={{ marginTop: 6 }} onClick={runAiMatch}>
+            <Button block className="le-control" size="small" icon={<ThunderboltOutlined />} onClick={runAiMatch}>
               AI 匹配素材
             </Button>
           </div>
           <div className="le-template-row">
             {Object.values(SCENE_TEMPLATES).map((t) => (
-              <Button key={t.id} size="small" onClick={() => applySceneTemplate(t.id)}>{t.name}</Button>
+              <Button key={t.id} className="le-control" size="small" onClick={() => applySceneTemplate(t.id)}>{t.name}</Button>
             ))}
           </div>
           <Select
+            className="le-control"
             value={categoryFilter}
             onChange={setCategoryFilter}
-            style={{ width: '100%', marginBottom: 8 }}
+            style={{ width: '100%' }}
             options={[{ value: 'all', label: '全部分类' }, ...ASSET_CATEGORIES.map((c) => ({ value: c.id, label: c.label }))]}
           />
-          <Input placeholder="搜索标签/名称" value={searchText} onChange={(e) => setSearchText(e.target.value)} style={{ marginBottom: 10 }} />
+          <Input
+            className="le-control"
+            placeholder="搜索标签/名称"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
           <div className="le-asset-grid">
             {filteredAssets.map((a) => (
               <Tooltip key={a.id} title={`${a.desc} · ${a.tags.join(' ')}`}>

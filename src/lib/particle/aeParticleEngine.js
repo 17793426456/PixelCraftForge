@@ -1,11 +1,11 @@
 /** 仿 AE 粒子插件逻辑的 Canvas 2D 模拟引擎 */
 
-export const CANVAS_W = 800
-export const CANVAS_H = 450
+export const CANVAS_W = 1200
+export const CANVAS_H = 675
 
 export const EMITTER_SHAPES = ['point', 'circle', 'fan']
 export const PARTICLE_SHAPES = ['circle', 'star', 'texture']
-export const BLEND_MODES = ['normal', 'add']
+export const BLEND_MODES = ['normal', 'add', 'screen']
 
 export function createDefaultLayer(id, name) {
   return {
@@ -50,33 +50,112 @@ export function createDefaultLayer(id, name) {
   }
 }
 
+export function getBuiltinPresetTextureKey(preset) {
+  if (!preset) return 'spark'
+  return preset.textureKey ?? preset.layer?.textureKey ?? 'spark'
+}
+
+/** 生成示例粒子贴图（Canvas → Image，供内置预设演示） */
+export function createExampleParticleTexture(kind = 'spark') {
+  const size = 64
+  const c = document.createElement('canvas')
+  c.width = size
+  c.height = size
+  const ctx = c.getContext('2d')
+  const cx = size / 2
+  const cy = size / 2
+  if (kind === 'rain') {
+    const g = ctx.createLinearGradient(cx, 0, cx, size)
+    g.addColorStop(0, 'rgba(186,230,253,0)')
+    g.addColorStop(0.35, 'rgba(147,197,253,0.95)')
+    g.addColorStop(1, 'rgba(59,130,246,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(cx - 1, 4, 2, size - 8)
+  } else if (kind === 'flame') {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2)
+    g.addColorStop(0, 'rgba(255,250,200,1)')
+    g.addColorStop(0.35, 'rgba(255,160,60,0.95)')
+    g.addColorStop(0.7, 'rgba(239,68,68,0.6)')
+    g.addColorStop(1, 'rgba(255,40,0,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, size, size)
+  } else {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2)
+    g.addColorStop(0, 'rgba(255,255,255,1)')
+    g.addColorStop(0.35, 'rgba(200,160,255,0.9)')
+    g.addColorStop(1, 'rgba(168,85,247,0)')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(cx, cy, size / 2 - 1, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  const img = new Image()
+  img.src = c.toDataURL('image/png')
+  return new Promise((resolve, reject) => {
+    img.onload = () => resolve(img)
+    img.onerror = reject
+  })
+}
+
 export const BUILTIN_PRESETS = {
   magic_spark: {
     name: '魔法火花',
+    textureKey: 'spark',
     layer: {
       emitter: { shape: 'fan', angle: -90, spread: 60, rate: 35 },
-      appearance: { sizeStart: 8, sizeEnd: 0.5, colorStart: '#c084fc', colorEnd: '#f472b6', shape: 'star' },
+      appearance: { sizeStart: 8, sizeEnd: 0.5, colorStart: '#c084fc', colorEnd: '#f472b6', shape: 'texture' },
       physics: { speed: 4, gravity: -0.06, turbulence: 0.5 },
       render: { blendMode: 'add', glow: 0.6 },
     },
   },
   rain: {
     name: '细雨',
+    textureKey: 'rain',
     layer: {
-      emitter: { shape: 'circle', radius: 400, x: CANVAS_W / 2, y: -20, rate: 45, angle: 90, spread: 8 },
-      appearance: { sizeStart: 2, sizeEnd: 2, colorStart: '#93c5fd', colorEnd: '#60a5fa', shape: 'circle' },
-      physics: { speed: 8, gravity: 0.15, drag: 0, turbulence: 0.1 },
-      render: { blendMode: 'normal', glow: 0 },
+      emitter: {
+        shape: 'circle',
+        radius: Math.round(CANVAS_W * 0.52),
+        x: CANVAS_W / 2,
+        y: -48,
+        rate: 65,
+        angle: 92,
+        spread: 14,
+      },
+      appearance: {
+        sizeStart: 2,
+        sizeEnd: 5,
+        colorStart: '#e0f2fe',
+        colorEnd: '#3b82f6',
+        shape: 'texture',
+      },
+      physics: { speed: 11, gravity: 0.28, drag: 0.04, turbulence: 0.35 },
+      render: { blendMode: 'screen', glow: 0.25, motionBlur: true },
+      animation: { lifetime: 90, loop: true },
     },
   },
   explosion: {
     name: '爆炸',
+    textureKey: 'flame',
     layer: {
-      emitter: { shape: 'circle', radius: 8, rate: 80, angle: 0, spread: 360 },
-      appearance: { sizeStart: 10, sizeEnd: 0, colorStart: '#fbbf24', colorEnd: '#ef4444', shape: 'circle' },
-      physics: { speed: 6, gravity: 0.08, turbulence: 0.8 },
-      render: { blendMode: 'add', glow: 0.7, motionBlur: true },
-      animation: { lifetime: 48 },
+      emitter: {
+        shape: 'circle',
+        radius: 16,
+        x: CANVAS_W / 2,
+        y: CANVAS_H * 0.58,
+        rate: 140,
+        angle: 0,
+        spread: 360,
+      },
+      appearance: {
+        sizeStart: 16,
+        sizeEnd: 0.5,
+        colorStart: '#fef9c3',
+        colorEnd: '#ea580c',
+        shape: 'texture',
+      },
+      physics: { speed: 8.5, gravity: 0.04, turbulence: 1.35, drag: 0.05 },
+      render: { blendMode: 'add', glow: 0.9, motionBlur: true },
+      animation: { lifetime: 42, loop: true },
     },
   },
 }
@@ -175,7 +254,11 @@ export function drawParticle(ctx, p, layer, textureImg) {
   if (alpha <= 0.01 || size <= 0.05) return
 
   ctx.save()
-  ctx.globalCompositeOperation = render.blendMode === 'add' ? 'lighter' : 'source-over'
+  ctx.globalCompositeOperation = render.blendMode === 'add'
+    ? 'lighter'
+    : render.blendMode === 'screen'
+      ? 'screen'
+      : 'source-over'
   ctx.globalAlpha = Math.max(0, Math.min(1, alpha))
   ctx.fillStyle = lerpColor(appearance.colorStart, appearance.colorEnd, t)
 

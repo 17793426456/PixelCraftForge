@@ -18,7 +18,7 @@
 }
 
 .lyed-header {
-  padding: 16px 0 4px;
+  padding: 12px 0 0;
 }
 
 .lyed-header h1 {
@@ -38,10 +38,10 @@
 /* ===== 主工作区 ===== */
 .lyed-workspace {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 260px;
+  grid-template-columns: 52px minmax(0, 1fr) 280px;
   gap: 0;
   flex: 1;
-  min-height: 560px;
+  min-height: min(72vh, 720px);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -146,6 +146,7 @@
 
 .lyed-viewport {
   flex: 1;
+  min-height: 480px;
   overflow: hidden;
   position: relative;
   background:
@@ -317,20 +318,32 @@
 
 .lyed-panel-btns {
   display: flex;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 8px 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.lyed-panel-btns .ant-btn {
-  flex: 1;
+.lyed-panel-btns .ant-btn,
+.lyed-panel-btns [data-slot="button"] {
+  flex: 0 1 auto;
+  min-width: 2.25rem;
+  max-width: 100%;
   font-size: 12px;
 }
 
 .lyed-callouts {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  padding: 0 0 6px;
+}
+
+.lyed-callouts .feature-callout-title,
+.lyed-callouts .feature-callout-summary,
+.lyed-callouts .feature-callout-list {
+  text-align: left;
 }
 
 @media (max-width: 960px) {

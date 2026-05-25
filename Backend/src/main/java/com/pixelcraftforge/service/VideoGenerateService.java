@@ -46,13 +46,25 @@ public class VideoGenerateService {
         return response;
     }
 
-    public VideoTaskCreateResponse createImageToVideo(VideoGenerateRequest request, MultipartFile image) {
-        ReferenceImageService.PreparedReference reference = referenceImageService.prepare(image);
-        String taskId = seedanceClient.createImageToVideoTask(request, reference.dataUri());
-        log.info("图生视频任务已提交, taskId={}, reference={}", taskId, reference.referenceUrl());
+    public VideoTaskCreateResponse createImageToVideo(
+            VideoGenerateRequest request,
+            MultipartFile firstImage,
+            MultipartFile lastImage) {
+        ReferenceImageService.PreparedReference firstRef = referenceImageService.prepare(firstImage);
+        String lastDataUri = null;
+        String lastRefUrl = null;
+        if (lastImage != null && !lastImage.isEmpty()) {
+            ReferenceImageService.PreparedReference lastRef = referenceImageService.prepare(lastImage);
+            lastDataUri = lastRef.dataUri();
+            lastRefUrl = lastRef.referenceUrl();
+        }
+        String taskId = seedanceClient.createImageToVideoTask(
+                request, firstRef.dataUri(), lastDataUri);
+        log.info("图生视频任务已提交, taskId={}, firstFrame={}, lastFrame={}",
+                taskId, firstRef.referenceUrl(), lastRefUrl);
         VideoTaskCreateResponse response = buildCreateResponse(taskId);
         generationRecordService.createVideoTask(
-                AssetGenerationType.IMAGE_TO_VIDEO, request, taskId, response.getStatus(), reference.referenceUrl());
+                AssetGenerationType.IMAGE_TO_VIDEO, request, taskId, response.getStatus(), firstRef.referenceUrl());
         return response;
     }
 

@@ -84,11 +84,14 @@ export default function AssetLibrary() {
   }
 
   const handleImport = async ({ fileList }) => {
+    const files = (fileList ?? []).map((item) => item.originFileObj).filter(Boolean)
+    if (!files.length) {
+      message.warning('未选择有效文件')
+      return
+    }
     setLoading(true)
     try {
-      for (const item of fileList) {
-        const file = item.originFileObj
-        if (!file) continue
+      for (const file of files) {
         let width = null
         let height = null
         if (file.type.startsWith('image/')) {
@@ -105,7 +108,7 @@ export default function AssetLibrary() {
         })
       }
       await refresh()
-      message.success(`已导入 ${fileList.length} 个文件到本地仓库`)
+      message.success(`已导入 ${files.length} 个文件到本地仓库`)
     } catch (e) {
       message.error(e instanceof Error ? e.message : '导入失败')
     } finally {
@@ -218,9 +221,10 @@ export default function AssetLibrary() {
                 showUploadList={false}
                 beforeUpload={() => false}
                 onChange={handleImport}
-                accept="image/*,audio/*,.gif,.zip"
+                accept="image/*,video/*,audio/*,.gif,.zip,.json"
               >
-                <p><UploadOutlined /> 拖拽或点击导入素材</p>
+                <p><UploadOutlined /> 拖拽或点击导入素材库</p>
+                <p className="library-import-hint">支持图片、视频、音频、GIF、ZIP</p>
               </Upload.Dragger>
               <Input.Search
                 placeholder="搜索素材名称..."

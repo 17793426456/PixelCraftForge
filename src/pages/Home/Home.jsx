@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardAction } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { message } from '@/lib/ui/notify'
 import FileDropzone from '@/components/app/FileDropzone'
 import Stack from '@/components/app/Stack'
@@ -23,7 +24,8 @@ import { zipBlobs } from '../../lib/assets/imageExport.js'
 import { ApiError } from '../../lib/api/client.js'
 import { funcTypeToAssetCategory } from '../../lib/api/assetCategory.js'
 import { generateImageToImage, generateTextToImage } from '../../lib/api/elementApi.js'
-import { resolveMediaUrl, urlToBlob } from '../../lib/api/mediaUrl.js'
+import { ensureResultBlob, resolveMediaUrl, urlToBlob } from '../../lib/api/mediaUrl.js'
+import { triggerDownload } from '../../lib/assets/imageExport.js'
 import './Home.css'
 
 const styleOptions = ['像素风', '国风二次元', 'Q版卡通', '复古街机', '暗黑写实', '赛博朋克']
@@ -60,6 +62,7 @@ export default function Home() {
   const [generatedAssets, setGeneratedAssets] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('道具物品类')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [genProgress, setGenProgress] = useState(0)
   const heroRef = useRef(null)
   const cosmosRef = useRef(null)
   const heroContentRef = useRef(null)
@@ -117,6 +120,7 @@ export default function Home() {
       return
     }
     setIsGenerating(true)
+    setGenProgress(10)
     try {
       const base = generatedAssets.length
       const style = selectedStyle || '像素风'
@@ -148,6 +152,7 @@ export default function Home() {
         }
         const previewUrl = resolveMediaUrl(apiRes.url)
         const blob = await urlToBlob(apiRes.url)
+        setGenProgress(Math.min(95, 15 + Math.round(((i + 1) / 4) * 80)))
         next.push({
           id: Date.now() + i,
           name,
@@ -166,6 +171,7 @@ export default function Home() {
       message.error(msg)
     } finally {
       setIsGenerating(false)
+      setGenProgress(0)
     }
   }
 
@@ -175,7 +181,7 @@ export default function Home() {
       const entries = await Promise.all(
         generatedAssets.map(async (a) => ({
           name: `${a.name}.png`,
-          blob: a.blob ?? (await (await fetch(a.previewUrl)).blob()),
+          blob: await ensureResultBlob({ blob: a.blob, previewUrl: a.previewUrl, url: a.previewUrl }),
         })),
       )
       await zipBlobs(entries, 'generated-assets.zip')
@@ -188,8 +194,9 @@ export default function Home() {
   const handleSaveToLibrary = async () => {
     if (!generatedAssets.length) return
     try {
+      let saved = 0
       for (const a of generatedAssets) {
-        const blob = a.blob ?? (await (await fetch(a.previewUrl)).blob())
+        const blob = await ensureResultBlob({ blob: a.blob, previewUrl: a.previewUrl, url: a.previewUrl })
         const file = new File([blob], `${a.name}.png`, { type: 'image/png' })
         await addAssetFromFile(file, {
           name: a.name,
@@ -197,10 +204,20 @@ export default function Home() {
           funcType: selectedCategory,
           folder: '工作台生成',
         })
+        saved += 1
       }
-      message.success(`已入库 ${generatedAssets.length} 个素材`)
+      message.success(`已入库 ${saved} 个素材`)
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '入库失败')
+    }
+  }
+
+  const handleDownloadOne = async (a) => {
+    try {
+      const blob = await ensureResultBlob({ blob: a.blob, previewUrl: a.previewUrl, url: a.previewUrl })
+      triggerDownload(blob, `${a.name}.png`)
     } catch {
-      message.error('入库失败')
+      message.error('下载失败')
     }
   }
 
@@ -371,6 +388,12 @@ export default function Home() {
                     </Stack>
                   </div>
                 </div>
+                {isGenerating && (
+                  <div className="mb-3 space-y-1">
+                    <Progress value={genProgress} className="h-2" />
+                    <p className="text-xs text-muted-foreground">正在生成 {genProgress}%…</p>
+                  </div>
+                )}
                 <button type="button" className="btn-primary btn-primary--block" disabled={isGenerating} onClick={handleGenerate}>
                   <Zap className="size-4" />
                   {isGenerating ? '生成中...' : '智能生成素材'}
@@ -428,9 +451,12 @@ export default function Home() {
                       ) : (
                         <div className="asset-preview"><IconFont type="icon-game" /></div>
                       )}
-                      <CardContent className="p-3">
+                      <CardContent className="p-3 space-y-2">
                         <p className="font-medium text-sm">{asset.name}</p>
                         <CardDescription>{`${asset.style} · ${asset.size}`}</CardDescription>
+                        <Button variant="outline" size="sm" className="w-full" onClick={() => { void handleDownloadOne(asset) }}>
+                          <Download className="size-3.5" /> 下载
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}

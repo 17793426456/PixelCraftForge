@@ -1,0 +1,229 @@
+/**
+ * 全站 UI 间距：按钮留白、描述/提示文案边距、操作区组间距
+ */
+
+:root {
+  --ui-btn-pad-x: 16px;
+  --ui-btn-pad-y: 8px;
+  --ui-btn-pad-x-sm: 14px;
+  --ui-btn-pad-y-sm: 6px;
+  --ui-btn-gap: 10px;
+  --ui-desc-pad-x: 6px;
+  --ui-desc-margin-y: 8px;
+  --ui-action-gap: 10px;
+}
+
+/* —— 描述 / 副标题 / 提示（居中） —— */
+.page-subtitle,
+.atelier-subtitle,
+.vf-subtitle,
+.scene-subtitle,
+.workbench-intro__subtitle {
+  padding-inline: var(--ui-desc-pad-x);
+  margin-block: var(--ui-desc-margin-y) calc(var(--ui-desc-margin-y) + 4px);
+  line-height: 1.65;
+  text-align: center;
+}
+
+p.text-muted-foreground,
+.text-xs.text-muted-foreground,
+.jm-panel-footer .text-muted-foreground,
+.jm-canvas .text-muted-foreground {
+  display: block;
+  padding-inline: var(--ui-desc-pad-x);
+  margin-block: 6px 10px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.empty-hint {
+  padding: 28px 20px !important;
+  line-height: 1.75 !important;
+  text-align: center !important;
+}
+
+.empty-hint-icon {
+  margin-bottom: 14px !important;
+}
+
+.feature-callout {
+  padding: 16px 18px !important;
+}
+
+.feature-callout:not(.feature-callout--compact) .feature-callout-title,
+.feature-callout:not(.feature-callout--compact) .feature-callout-summary {
+  text-align: left;
+}
+
+.feature-callout:not(.feature-callout--compact) .feature-callout-head {
+  justify-content: space-between;
+}
+
+.feature-callout:not(.feature-callout--compact) .feature-callout-summary {
+  padding-inline: 2px;
+  margin: 0 0 10px !important;
+  line-height: 1.55 !important;
+}
+
+.feature-callout:not(.feature-callout--compact) .feature-callout-list {
+  text-align: left;
+  padding-left: 18px !important;
+}
+
+.feature-callout-list li + li {
+  margin-top: 4px;
+}
+
+/* 各页 hint */
+.cust-import-hint,
+.vf-steps-hint,
+.vf-upload-hint,
+.vf-upload-empty-guide,
+.pixel-tool-hint,
+.ae-callouts,
+.lyed-callouts,
+.le-callout,
+.scene-example-hint,
+.scene-build-hint,
+.scene-widget-hint {
+  padding-inline: var(--ui-desc-pad-x);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.cust-import-hint {
+  display: block;
+  margin-top: 6px;
+  padding-bottom: 4px;
+}
+
+.vf-upload-hints {
+  gap: 6px !important;
+  margin-top: 8px !important;
+  padding-inline: 8px;
+}
+
+.vf-upload-hint {
+  padding-block: 2px;
+}
+
+.vf-steps-hint {
+  padding-inline: 12px;
+  margin: 0 0 22px !important;
+}
+
+/* 面板标题与正文间距 */
+.jm-panel-title,
+.atelier-panel-title,
+.vf-panel-title,
+.page-title {
+  margin-bottom: 10px;
+  padding-inline: 2px;
+}
+
+.lyed-menubar-label,
+.lyed-options-label,
+.lyed-panel-foot-label,
+.jm-options-label {
+  padding-inline: 4px;
+  margin-inline: 2px;
+}
+
+/* —— 按钮组 / 操作区间距 —— */
+.ant-space,
+.pixel-tool-actions,
+.pt-brush-actions,
+.pt-export-bar,
+.pt-hero-actions,
+.jm-canvas-toolbar,
+.jm-panel-footer,
+.cust-panel-footer,
+.lyed-menubar,
+.lyed-menubar-group,
+.lyed-panel-btns,
+.ae-toolbar,
+.library-toolbar,
+.vf-results-header .ant-space,
+[class*="tool-actions"] {
+  gap: var(--ui-action-gap) !important;
+}
+
+.lyed-menubar-group {
+  padding-inline: 4px;
+}
+
+.jm-panel-footer,
+.cust-panel-footer {
+  padding: 14px 18px 22px !important;
+}
+
+/* 上传区说明 */
+[class*="upload"] p,
+.jm-upload p,
+.cust-import-btn {
+  padding-inline: 8px;
+  text-align: center;
+}
+
+.cust-import-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px !important;
+  text-align: center;
+}
+
+/* FileDropzone 内文案 */
+[role="button"][tabindex]:not([class*="inline"]) {
+  text-align: center;
+}
+
+[role="button"][tabindex]:not([class*="inline"]) > p {
+  padding-inline: 12px;
+  text-align: center;
+  width: 100%;
+}
+
+/* 全站按钮文字居中 */
+[data-slot="button"],
+.ant-btn,
+.btn-primary,
+.btn-secondary,
+.jm-generate-btn,
+.jm-generate-text,
+.shell-footer-toggle {
+  text-align: center;
+}
+
+.jm-generate-text {
+  justify-content: center;
+  width: 100%;
+}
+
+/* 下拉菜单内联上传项保持左对齐，避免菜单错位 */
+[data-slot="dropdown-menu-item"] [role="button"][tabindex] {
+  text-align: left;
+  justify-content: flex-start;
+}
+
+/* 图层页紧凑标签不参与全局描述居中 */
+.lyed-callouts .feature-callout--compact {
+  text-align: left;
+}
+
+/* UI 素材工作室：工具栏按钮居中 */
+.uikit-page .uikit-toolbar [data-slot="button"],
+.uikit-page .uikit-actions [data-slot="button"],
+.uikit-page .uikit-upload-zone [data-slot="button"] {
+  justify-content: center !important;
+}
+
+.pixel-tool-actions .ant-btn,
+.pixel-tool-actions [data-slot="button"] {
+  min-height: 34px !important;
+  padding: 7px 16px !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
