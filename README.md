@@ -8,6 +8,10 @@
   <strong>AI</strong> 火山方舟 Seedream / Seedance
 </p>
 
+<p align="center">
+  <strong>功能展示视频</strong>：<a href="https://www.bilibili.com/video/BV1gLGo6kEbi/">哔哩哔哩 · BV1gLGo6kEbi</a>
+</p>
+
 ---
 
 ## 功能模块
