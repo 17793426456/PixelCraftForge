@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Upload, message, Checkbox, Space, InputNumber } from 'antd'
+import { Button, Upload, message, Checkbox, Space, InputNumber } from '@/lib/ui/antd-compat'
 import { DownloadOutlined, AppstoreOutlined, SaveOutlined } from '@ant-design/icons'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import uiDrawComponents from '../../constants/features/ui-draw-components.js'

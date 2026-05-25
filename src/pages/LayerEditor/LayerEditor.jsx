@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Slider, Upload, ColorPicker, message, Tooltip, Select, Input, Dropdown,
-} from 'antd'
+} from '@/lib/ui/antd-compat'
 import {
   DownloadOutlined, PlusOutlined, DeleteOutlined, BgColorsOutlined,
   UndoOutlined, RedoOutlined, SaveOutlined, ClearOutlined, CopyOutlined,

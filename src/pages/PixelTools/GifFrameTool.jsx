@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button, Collapse, ColorPicker, InputNumber, message, Radio, Segmented, Slider, Space, Tabs, Upload,
-} from 'antd'
+} from '@/lib/ui/antd-compat'
 import {
   CheckCircleOutlined, CloudUploadOutlined, DownloadOutlined, DownOutlined,
   FileImageOutlined, PictureOutlined, ReloadOutlined,

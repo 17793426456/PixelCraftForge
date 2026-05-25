@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Checkbox, ColorPicker, InputNumber, message, Progress, Radio, Segmented, Slider, Space, Switch, Tooltip, Typography, Upload } from 'antd'
+import { Button, Checkbox, ColorPicker, InputNumber, message, Progress, Radio, Segmented, Slider, Space, Switch, Tooltip, Typography, Upload } from '@/lib/ui/antd-compat'
 import JSZip from 'jszip'
 import { superSplitByTransparent } from '../../lib/frameRonin/superSplitTransparent.js'
 import {
@@ -23,7 +23,6 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
 } from '@ant-design/icons'
-import type { UploadFile } from 'antd'
 import { useLanguage } from '../shims/useLanguage.js'
 import StashDropZone from '../shims/StashDropZone.jsx'
 import CropPreview from './CropPreview.tsx'

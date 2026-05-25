@@ -6,7 +6,7 @@ import {
   ThunderboltOutlined, ToolOutlined, VideoCameraOutlined, FormatPainterOutlined,
   EditOutlined,
 } from '@ant-design/icons'
-import { Collapse, Tabs, Tooltip, Button, message } from 'antd'
+import { Collapse, Tabs, Tooltip, Button, message } from '@/lib/ui/antd-compat'
 import GifFrameTool from './GifFrameTool.jsx'
 import SpriteSheetTool from './SpriteSheetTool.jsx'
 import GeminiWatermark from './GeminiWatermark.jsx'

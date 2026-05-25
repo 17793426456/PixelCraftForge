@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Button, InputNumber, Select, Space, Upload, message } from 'antd'
-import { DownloadOutlined, BorderOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Download, Square, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import NumberInput from '@/components/app/NumberInput'
+import FileDropzone from '@/components/app/FileDropzone'
+import Stack from '@/components/app/Stack'
+import { message } from '@/lib/ui/notify'
 import FeatureCallout from '../../components/FeatureHub/FeatureCallout.jsx'
 import sceneTileBuild from '../../constants/features/scene-tile-build.js'
 import sceneMapExport from '../../constants/features/scene-map-export.js'
@@ -139,10 +144,7 @@ export default function MapEditor() {
       cols,
       rows,
       tileSize,
-      layers: {
-        ground: groundGrid,
-        decor: decorGrid,
-      },
+      layers: { ground: groundGrid, decor: decorGrid },
       collisions,
       tileColors: TILE_COLORS,
     }
@@ -155,25 +157,47 @@ export default function MapEditor() {
     <div className="vf-page atelier-page-wrap">
       <div className="atelier-page atelier-page--wide">
         <header className="atelier-hero">
-          <h1 className="atelier-title"><BorderOutlined /> 地图瓦片编辑器</h1>
+          <h1 className="atelier-title flex items-center gap-2"><Square className="size-6 text-primary" /> 地图瓦片编辑器</h1>
           <p className="atelier-subtitle">双图层绘制、自定义贴图、碰撞标注与擦除，导出 JSON + PNG</p>
         </header>
         <FeatureCallout feature={sceneTileBuild} />
         <FeatureCallout feature={sceneMapExport} />
-        <Space wrap style={{ marginBottom: 16 }}>
-          <span>列</span><InputNumber min={4} max={64} value={cols} onChange={(v) => { setCols(v ?? 16); resizeGrid(v ?? 16, rows) }} />
-          <span>行</span><InputNumber min={4} max={64} value={rows} onChange={(v) => { setRows(v ?? 12); resizeGrid(cols, v ?? 12) }} />
-          <span>格</span><InputNumber min={8} max={128} value={tileSize} onChange={(v) => setTileSize(v ?? 32)} />
-          <Select value={brush} onChange={setBrush} style={{ width: 100 }} options={TILE_COLORS.map((c, i) => ({ value: i, label: `地砖 ${i}` }))} />
-          <Select value={layer} onChange={setLayer} options={[{ value: 'ground', label: '地面层' }, { value: 'decor', label: '装饰层' }]} />
-          <Upload showUploadList={false} beforeUpload={(f) => { void importTileTexture(f, brush); return false }} accept="image/*">
-            <Button>为当前笔刷上传贴图</Button>
-          </Upload>
-          <Button type={paintCollision ? 'primary' : 'default'} onClick={() => { setPaintCollision((p) => !p); setCollisionErase(false) }}>碰撞绘制</Button>
-          <Button type={collisionErase ? 'primary' : 'default'} disabled={!paintCollision} onClick={() => setCollisionErase((e) => !e)} icon={<DeleteOutlined />}>碰撞擦除</Button>
-          <Button type="primary" icon={<DownloadOutlined />} onClick={exportMap}>导出地图</Button>
-        </Space>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>右键擦除瓦片 · 当前编辑：{layer === 'ground' ? '地面层' : '装饰层'}</p>
+        <Stack wrap style={{ marginBottom: 16 }} align="center">
+          <span>列</span>
+          <NumberInput min={4} max={64} value={cols} onChange={(v) => { setCols(v); resizeGrid(v, rows) }} />
+          <span>行</span>
+          <NumberInput min={4} max={64} value={rows} onChange={(v) => { setRows(v); resizeGrid(cols, v) }} />
+          <span>格</span>
+          <NumberInput min={8} max={128} value={tileSize} onChange={setTileSize} />
+          <Select value={String(brush)} onValueChange={(v) => setBrush(Number(v))}>
+            <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {TILE_COLORS.map((_, i) => (
+                <SelectItem key={i} value={String(i)}>地砖 {i}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={layer} onValueChange={setLayer}>
+            <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ground">地面层</SelectItem>
+              <SelectItem value="decor">装饰层</SelectItem>
+            </SelectContent>
+          </Select>
+          <FileDropzone
+            accept="image/*"
+            maxCount={1}
+            title="为当前笔刷上传贴图"
+            className="!py-3 !px-4 min-w-[180px]"
+            onFiles={(files) => { void importTileTexture(files[0], brush) }}
+          />
+          <Button variant={paintCollision ? 'default' : 'outline'} onClick={() => { setPaintCollision((p) => !p); setCollisionErase(false) }}>碰撞绘制</Button>
+          <Button variant={collisionErase ? 'default' : 'outline'} disabled={!paintCollision} onClick={() => setCollisionErase((e) => !e)}>
+            <Trash2 className="size-4" /> 碰撞擦除
+          </Button>
+          <Button onClick={exportMap}><Download className="size-4" /> 导出地图</Button>
+        </Stack>
+        <p className="mb-2 text-xs text-muted-foreground">右键擦除瓦片 · 当前编辑：{layer === 'ground' ? '地面层' : '装饰层'}</p>
         <canvas
           ref={(el) => { canvasRef.current = el; if (el) draw() }}
           onMouseDown={(e) => { setIsPainting(true); paintAt(e, e.button === 2) }}

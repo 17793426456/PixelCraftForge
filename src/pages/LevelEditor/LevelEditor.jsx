@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Input, Select, Space, message, Tag, Tooltip,
-} from 'antd'
+} from '@/lib/ui/antd-compat'
 import {
   DownloadOutlined, SaveOutlined, DeleteOutlined, ZoomInOutlined, ZoomOutOutlined,
   BorderOutlined, ThunderboltOutlined, FileTextOutlined,

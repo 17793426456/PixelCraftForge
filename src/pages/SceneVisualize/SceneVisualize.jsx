@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Button, Tag, message, Input, Progress, Tooltip, Space, Segmented, Checkbox,
-} from 'antd'
+} from '@/lib/ui/antd-compat'
 import {
   PictureOutlined, BulbOutlined, AppstoreOutlined, EditOutlined,
   PlaySquareOutlined, TableOutlined, ApartmentOutlined,

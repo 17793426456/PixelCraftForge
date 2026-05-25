@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Tag, Input, Button, Row, Col, Space, Slider, Modal, message, Upload, Select,
-} from 'antd'
+} from '@/lib/ui/antd-compat'
 import {
   DownloadOutlined, SwapOutlined, ExportOutlined, AppstoreOutlined,
   InboxOutlined, FolderOutlined, SaveOutlined, DeleteOutlined, UploadOutlined,

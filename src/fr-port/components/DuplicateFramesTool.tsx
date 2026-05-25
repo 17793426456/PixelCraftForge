@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Button, InputNumber, message, Space, Typography, Upload } from 'antd'
+import { Button, InputNumber, message, Space, Typography, Upload } from '@/lib/ui/antd-compat'
 import { SearchOutlined } from '@ant-design/icons'
-import type { UploadFile } from 'antd'
 import { useLanguage } from '../shims/useLanguage.js'
 import { findDuplicateFrameIndexGroups, splitSpriteSheetGrid } from '../../lib/frameRonin/spriteGridDuplicate.js'
 import StashableImage from '../shims/StashableImage.jsx'

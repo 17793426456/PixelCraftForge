@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Button, Upload, Checkbox, message, Badge, Input, Tooltip, Dropdown, ColorPicker,
-} from 'antd'
+} from '@/lib/ui/antd-compat'
 import {
   ThunderboltOutlined, UploadOutlined, ReloadOutlined, DownOutlined, SaveOutlined,
 } from '@ant-design/icons'

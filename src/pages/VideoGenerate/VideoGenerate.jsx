@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import {
   Button, Upload, Checkbox, Tag, message, Space, Input, Tooltip, Dropdown, Progress, Slider,
-} from 'antd'
+} from '@/lib/ui/antd-compat'
 import {
   ThunderboltOutlined, HighlightOutlined, PictureOutlined, PlayCircleOutlined,
   ReloadOutlined, InfoCircleOutlined, RightOutlined, DownOutlined, PauseCircleOutlined,

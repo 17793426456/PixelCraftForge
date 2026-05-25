@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Button, Progress, message, Slider, Checkbox, Space, Dropdown, InputNumber, Select, Segmented, Input, Tooltip } from 'antd'
+import { Button, Progress, message, Slider, Checkbox, Space, Dropdown, InputNumber, Select, Segmented, Input, Tooltip } from '@/lib/ui/antd-compat'
 import {
   ScissorOutlined, CheckCircleOutlined, ReloadOutlined, EyeOutlined,
   DownloadOutlined, SettingOutlined, LoadingOutlined, CloudUploadOutlined,

@@ -1,7 +1,5 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { ConfigProvider, theme } from 'antd'
-import zhCN from 'antd/locale/zh_CN'
 import { Menu } from 'lucide-react'
 import Sidebar from './components/Sidebar/Sidebar'
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext'
@@ -10,21 +8,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { Spinner } from '@/components/ui/spinner'
 import './App.css'
-
-const antTheme = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: '#a855f7',
-    colorLink: '#c4b5fd',
-    colorBgLayout: '#0f0f12',
-    colorBgContainer: '#1c1c24',
-    colorBgElevated: '#252530',
-    colorBorder: 'rgba(255,255,255,0.08)',
-    colorText: 'rgba(255,255,255,0.92)',
-    colorTextSecondary: 'rgba(255,255,255,0.55)',
-    borderRadius: 12,
-  },
-}
 
 const ElementGenerate = lazy(() => import('./pages/ElementGenerate/ElementGenerate'))
 const ElementCustomize = lazy(() => import('./pages/ElementCustomize/ElementCustomize'))
@@ -100,14 +83,12 @@ function AppLayout() {
 
 function App() {
   return (
-    <ConfigProvider theme={antTheme} locale={zhCN}>
-      <TooltipProvider delayDuration={200}>
-        <SidebarProvider>
-          <AppLayout />
-          <Toaster richColors closeButton />
-        </SidebarProvider>
-      </TooltipProvider>
-    </ConfigProvider>
+    <TooltipProvider delayDuration={200}>
+      <SidebarProvider>
+        <AppLayout />
+        <Toaster richColors closeButton />
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }
 
