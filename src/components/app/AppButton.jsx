@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 /** 支持 antd 风格 type / icon / loading 的按钮封装 */
 const AppButton = forwardRef(function AppButton({
-  type, variant, danger, ghost, loading, icon, children, className, size, ...props
+  type, variant, danger, ghost, loading, icon, children, className, size, block, ...props
 }, ref) {
   let v = variant
   if (!v) {
@@ -22,7 +22,7 @@ const AppButton = forwardRef(function AppButton({
       ref={ref}
       variant={v}
       size={iconOnly ? 'icon' : sz}
-      className={cn('app-btn text-center', className)}
+      className={cn('app-btn text-center', block && 'w-full', className)}
       disabled={loading || props.disabled}
       {...props}
     >

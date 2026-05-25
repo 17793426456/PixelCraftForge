@@ -49,6 +49,12 @@ function ParamSlider({ label, min, max, step = 1, value, onChange }) {
   )
 }
 
+function colorToHex(c, fallback = '#ffffff') {
+  if (typeof c === 'string' && c) return c
+  if (c && typeof c.toHexString === 'function') return c.toHexString()
+  return fallback
+}
+
 function deepMergeLayer(layer, patch) {
   const next = { ...layer }
   for (const key of Object.keys(patch)) {
@@ -483,8 +489,14 @@ export default function ParticleStudio() {
           <div className="ae-param-row">
             <div className="ae-param-label">起始色 / 结束色</div>
             <Space>
-              <ColorPicker value={activeLayer.appearance.colorStart} onChange={(c) => updateActiveLayer({ appearance: { colorStart: c.toHexString() } })} />
-              <ColorPicker value={activeLayer.appearance.colorEnd} onChange={(c) => updateActiveLayer({ appearance: { colorEnd: c.toHexString() } })} />
+              <ColorPicker
+                value={activeLayer.appearance.colorStart}
+                onChange={(c) => updateActiveLayer({ appearance: { colorStart: colorToHex(c, activeLayer.appearance.colorStart) } })}
+              />
+              <ColorPicker
+                value={activeLayer.appearance.colorEnd}
+                onChange={(c) => updateActiveLayer({ appearance: { colorEnd: colorToHex(c, activeLayer.appearance.colorEnd) } })}
+              />
             </Space>
           </div>
           <ParamSlider label="初始透明度" min={0} max={1} step={0.05} value={activeLayer.appearance.opacityStart} onChange={(v) => updateActiveLayer({ appearance: { opacityStart: v } })} />
